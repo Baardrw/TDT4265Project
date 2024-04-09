@@ -1,0 +1,28 @@
+2024-04-09 13:28:13,650 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Current SDK version is 0.16.6
+2024-04-09 13:28:13,650 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Configure stats pid to 830336
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Loading settings from /home/baardrw/.config/wandb/settings
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Loading settings from /home/baardrw/TDT4265Project/FasterRCNN/wandb/settings
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'FasterRCNN/trainer.py', 'program_abspath': '/home/baardrw/TDT4265Project/FasterRCNN/trainer.py', 'program': '/home/baardrw/TDT4265Project/FasterRCNN/trainer.py'}
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_setup.py:_flush():76] Applying login settings: {}
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_init.py:_log_setup():521] Logging user logs to ./wandb/run-20240409_132813-fr3mqjbd/logs/debug.log
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_init.py:_log_setup():522] Logging internal logs to ./wandb/run-20240409_132813-fr3mqjbd/logs/debug-internal.log
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_init.py:init():561] calling init triggers
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_init.py:init():568] wandb.init called with sweep_config: {}
+config: {'max_lr': 0.01, 'weight_decay': 0.0001, 'momentum': 0.9, 'max_epochs': 100, 'batch_size': 128, 'in_channels': 3, 'num_classes': 100, 'use_pretrained_weights': True, 'test_model': False, 'checkpoint_path': None, 'early_stopping_patience': 10, 'num_workers': 16, 'check_val_every_n_epoch': 3, 'devices': 'auto', 'enable_progress_bar': False, 'wandb_project': 'CIFAR100', 'wandb_experiment_name': 'resnet_50_idun', 'train_split_ratio': 0.8, 'data_root': './data', 'checkpoint_folder': './checkpoints/'}
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_init.py:init():611] starting backend
+2024-04-09 13:28:13,651 INFO    MainThread:830336 [wandb_init.py:init():615] setting up manager
+2024-04-09 13:28:13,652 INFO    MainThread:830336 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-04-09 13:28:13,680 INFO    MainThread:830336 [wandb_init.py:init():623] backend started and connected
+2024-04-09 13:28:13,682 INFO    MainThread:830336 [wandb_init.py:init():715] updated telemetry
+2024-04-09 13:28:13,700 INFO    MainThread:830336 [wandb_init.py:init():748] communicating run to backend with 90.0 second timeout
+2024-04-09 13:28:14,349 INFO    MainThread:830336 [wandb_run.py:_on_init():2357] communicating current version
+2024-04-09 13:28:14,426 INFO    MainThread:830336 [wandb_run.py:_on_init():2366] got version response 
+2024-04-09 13:28:14,426 INFO    MainThread:830336 [wandb_init.py:init():799] starting run threads in backend
+2024-04-09 13:28:15,208 INFO    MainThread:830336 [wandb_run.py:_console_start():2335] atexit reg
+2024-04-09 13:28:15,208 INFO    MainThread:830336 [wandb_run.py:_redirect():2190] redirect: wrap_raw
+2024-04-09 13:28:15,208 INFO    MainThread:830336 [wandb_run.py:_redirect():2255] Wrapping output streams.
+2024-04-09 13:28:15,208 INFO    MainThread:830336 [wandb_run.py:_redirect():2280] Redirects installed.
+2024-04-09 13:28:15,208 INFO    MainThread:830336 [wandb_init.py:init():842] run started, returning control to user process
+2024-04-09 13:42:43,414 WARNING MsgRouterThr:830336 [router.py:message_loop():77] message_loop has been closed

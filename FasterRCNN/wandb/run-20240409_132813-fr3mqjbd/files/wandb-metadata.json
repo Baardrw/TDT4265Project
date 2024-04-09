@@ -1,0 +1,168 @@
+{
+    "os": "Linux-5.15.0-101-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "heartbeatAt": "2024-04-09T11:28:14.954762",
+    "startedAt": "2024-04-09T11:28:13.636599",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/baardrw/TDT4265Project/FasterRCNN/trainer.py",
+    "codePathLocal": "trainer.py",
+    "codePath": "FasterRCNN/trainer.py",
+    "git": {
+        "remote": "git@github.com:Baardrw/TDT4265Project.git",
+        "commit": "9a611cefc30d874271519f252a72a45448b3fb71"
+    },
+    "email": null,
+    "root": "/home/baardrw/TDT4265Project",
+    "host": "clab25",
+    "username": "baardrw",
+    "executable": "/usr/bin/python",
+    "cpu_count": 12,
+    "cpu_count_logical": 23,
+    "cpu_freq": {
+        "current": 3705.918166666667,
+        "min": 3000.0,
+        "max": 4700.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 5404.64,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 3413.755,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 3751.329,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2709.364,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 3804.076,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2745.942,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2984.954,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2954.463,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2985.57,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2974.855,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2985.514,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 5225.032,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 5491.204,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4150.982,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 3117.129,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2748.59,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 3769.938,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2741.944,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2985.03,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2987.75,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2984.801,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2985.486,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 2983.832,
+            "min": 3000.0,
+            "max": 4700.0
+        },
+        {
+            "current": 5225.842,
+            "min": 3000.0,
+            "max": 4700.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 97.87200164794922,
+            "used": 48.067588806152344
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 4090",
+            "memory_total": 25757220864
+        }
+    ],
+    "memory": {
+        "total": 61.942779541015625
+    }
+}
