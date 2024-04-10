@@ -1,4 +1,4 @@
-from datamodule import CIFAR100DataModule
+from FasterRCNN.datamoduleCIFART import CIFAR100DataModule
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import WandbLogger
