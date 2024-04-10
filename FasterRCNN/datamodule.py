@@ -1,7 +1,7 @@
 import lightning.pytorch as pl
 import numpy as np
 from torch.utils.data import DataLoader, Subset
-from torchvision import datasets, transforms, utils
+from torchvision import datasets, transforms, utils, tv_tensors
 from torchvision.transforms import v2
 import torch
 
@@ -24,16 +24,21 @@ class CityscapesDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Split the dataset into train and validation sets
         self.train_dataset = datasets.wrap_dataset_for_transforms_v2(datasets.Cityscapes(
-            root=self.data_root, mode='fine', target_type='instance', split='train', transform=self.get_transforms("train"), target_transform=self.get_target_transforms("train")))
+            root=self.data_root, mode='fine', target_type='instance', split='train', target_transform=self.target_transform, transform=self.get_transforms("train")))
         
-        print(type((self.train_dataset[0][0])))
-        print(type((self.train_dataset[0][1]['masks'][0])))
+        self.train_dataset = Subset(self.train_dataset, np.arange(0, 100)).dataset
         
         self.val_dataset = datasets.wrap_dataset_for_transforms_v2(datasets.Cityscapes(
             root=self.data_root, mode='fine', target_type='instance', split='val'))
-
+        
+        
+    def collate_fn(self, batch):
+        images = [item[0] for item in batch]
+        targets = [item[1] for item in batch]
+        return images, targets
+        
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=False, shuffle=True)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=True, collate_fn=self.collate_fn)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False)
@@ -43,12 +48,12 @@ class CityscapesDataModule(pl.LightningDataModule):
             root=self.data_root, mode='fine', target_type='instance', split='test', transform=self.get_transforms("test")))
         return DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False)
 
-    def get_target_transforms(self, split):
-        # Convert polygon to bounding box
-        pass
-            
+    def target_transform(self, target):
+        return target
+        target['masks'] = [tv_tensors.Mask(mask) for mask in target['masks']]
+        return target
     
-    def get_transforms(self, split):
+    def get_transforms(self, split, label=False):
         mean = [0.4914, 0.4822, 0.4465]
         std = [0.2023, 0.1994, 0.2010]
 
@@ -58,9 +63,18 @@ class CityscapesDataModule(pl.LightningDataModule):
         ]
 
         if split == "train":
+            
+            if label:
+                return v2.Compose(
+                    [
+                        v2.RandomPhotometricDistort(p=1.0),
+                        v2.RandomRotation(degrees=10)
+                    ]
+                    )
+            
             return v2.Compose(
             [
-                v2.to_tensor(),
+                # v2.ToImage(),
                 v2.RandomPhotometricDistort(p=1.0),
                 v2.RandomRotation(degrees=10)
             ]
@@ -92,11 +106,14 @@ if __name__ == '__main__':
     
     train_loader:DataLoader = loader.train_dataloader()
     
+    # Get one batch from dataloader
+    batch = next(iter(train_loader))
+    print(batch[0][0].shape)
+    print(batch[1][0]['masks'].shape)
     
-    for test_image, test_target in train_loader:
-        print(test_image.shape, test_target['masks'].shape)
-        break
-   
+        
+    
+    
     # # transform train_ds[0][0] to uint8
     # all_masks = train_ds[0][1]['masks'].squeeze(
     #     1)  # Remove channel dimension
