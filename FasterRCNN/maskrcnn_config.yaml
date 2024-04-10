@@ -2,10 +2,10 @@ max_lr: 0.01
 weight_decay: 0.0001
 momentum: 0.9
 max_epochs: 100
-batch_size: 128
+batch_size: 8
 
 in_channels: 3
-num_classes: 100
+num_classes: 30
 use_pretrained_weights: true
 
 test_model: false
@@ -14,10 +14,10 @@ early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
 devices: auto
-enable_progress_bar: False
+enable_progress_bar: True
 
-wandb_project: CIFAR100
-wandb_experiment_name: resnet_50_idun
+wandb_project: FasterRCNN
+wandb_experiment_name: MaskRCNN_Pretraining
 
 train_split_ratio: 0.8
 data_root: ./data

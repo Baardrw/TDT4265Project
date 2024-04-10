@@ -6,7 +6,7 @@ import torch
 
 
 
-class CityscapesDataModule(pl.LightningDataModule):
+class CIFAR100DataModule(pl.LightningDataModule):
     def __init__(self, batch_size=64, num_workers=11, data_root="./data", train_split_ratio=0.8):
         super().__init__()
         self.batch_size = batch_size
@@ -16,19 +16,19 @@ class CityscapesDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # Download the dataset if needed (only using rank 1)
-        datasets.cityscapes(root=self.data_root, mode="coarse", target_type="instance", train=True, download=True)
+        datasets.CIFAR100(root=self.data_root, train=True, download=True)
     
 
     def setup(self, stage=None):
         # Split the dataset into train and validation sets
-        train_dataset = datasets.cityscapes(root=self.data_root, train=True, transform=self.get_transforms("train"))
-        val_dataset = datasets.cityscapes(root=self.data_root, train=True, transform=self.get_transforms("val"))
+        train_dataset = datasets.CIFAR100(root=self.data_root, train=True, transform=self.get_transforms("train"))
+        val_dataset = datasets.CIFAR100(root=self.data_root, train=True, transform=self.get_transforms("val"))
         indices = torch.randperm(len(train_dataset))
         val_size = int(len(train_dataset) * self.train_split_ratio)
         self.train_dataset = Subset(train_dataset, indices[-val_size:])
         self.val_dataset = Subset(val_dataset, indices[:-val_size])
        
-       
+    
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=True)
 
@@ -36,7 +36,7 @@ class CityscapesDataModule(pl.LightningDataModule):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False)
 
     def test_dataloader(self):
-        test_dataset = datasets.cityscapes(root=self.data_root, train=False, transform=self.get_transforms("test"))
+        test_dataset = datasets.CIFAR100(root=self.data_root, train=False, transform=self.get_transforms("test"))
         return DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers,pin_memory=True, shuffle=False)
     
     def get_transforms(self,split):
