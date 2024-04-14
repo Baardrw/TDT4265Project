@@ -113,6 +113,7 @@ if __name__ == "__main__":
         mode=config.mode,
         valid_labels=VALID_LABELS,
         label2idx=STR2IDX,
+        image_dimensions=[config.image_height, config.image_width],
     )
     
     if config.checkpoint_path:

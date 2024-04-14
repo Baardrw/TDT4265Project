@@ -5,6 +5,8 @@ max_epochs: 100
 batch_size: 8
 
 use_pretrained_weights: true
+image_h: 256
+image_w: 512
 
 test_model: false
 checkpoint_path: #checkpoints/*****.ckpt used for 
@@ -15,7 +17,7 @@ devices: auto
 enable_progress_bar: True
 
 wandb_project: FasterRCNN
-wandb_experiment_name: FasterRCNN_CityScapes
+wandb_experiment_name: FasterRCNN_CityScapes_Larger_Image
 
 train_split_ratio: 0.8
 data_root: /work/baardrw/cityscapesDataset
