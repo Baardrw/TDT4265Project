@@ -118,7 +118,8 @@ class Cityscapes(VisionDataset):
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         transforms: Optional[Callable] = None,
-        classes_to_keep: Optional[List[str]] = ['car', 'person']
+        valid_labels: Optional[List[str]] = ['car', 'person'],
+        label2idx: Optional[Dict[str, int]] = None,
     ) -> None:
         super().__init__(root, transforms, transform, target_transform)
         self.mode = "gtFine" if mode == "fine" else "gtCoarse"
@@ -128,7 +129,12 @@ class Cityscapes(VisionDataset):
         self.split = split
         self.images = []
         self.targets = []
-        self.classes_to_keep = classes_to_keep
+        self.valid_labels = valid_labels
+        
+        if label2idx is not None:
+            self.label2idx = label2idx
+        else:
+            self.label2idx = {cls: idx for idx, cls in enumerate(self.valid_labels)}
 
         verify_str_arg(mode, "mode", ("fine", "coarse"))
         if mode == "fine":
@@ -180,6 +186,57 @@ class Cityscapes(VisionDataset):
 
                 self.images.append(os.path.join(img_dir, file_name))
                 self.targets.append(target_types)
+                
+    def create_bb_dataset(self):
+        if self.target_type != ['polygon']:
+            raise ValueError(f"Only target_type='polygon' is supported for this method, type is {self.target_type}")
+        
+        
+        for target in self.targets:
+            target = target[0]
+            
+            t = self._load_json(target)
+            t = self._filter_classes(t, self.valid_labels)
+            
+            labels = []
+            bounding_boxes = []
+            
+            labels.append('background')
+            bounding_boxes.append((0, 0, 2048, 1024))
+            
+            for object in t['objects']:
+                labels.append(object['label'])
+                polygon = object['polygon']
+                
+                min_x = min(polygon, key=lambda x: x[0])[0]
+                min_y = min(polygon, key=lambda x: x[1])[1]
+                max_x = max(polygon, key=lambda x: x[0])[0]
+                max_y = max(polygon, key=lambda x: x[1])[1]
+                
+                if min_x == max_x or min_y == max_y:
+                    print(f"Invalid bounding box: {min_x}, {min_y}, {max_x}, {max_y}")
+                    continue
+                
+                bounding_boxes.append((min_x, min_y, max_x, max_y))
+            
+            # Transform string labels to integer labels
+            labels = [self.label2idx[label] for label in labels]
+            
+            # Make the bounding box and id into a json dict and save it to the same directory as the polygon
+            target_dict = {
+                    'labels': labels,
+                    'boxes': bounding_boxes
+                }
+            
+            json_str = json.dumps(target_dict)
+            target_name = "{}_{}".format(
+                        target.split(self._get_target_suffix(self.mode, 'polygon'))[0], self._get_target_suffix(self.mode, 'boxes')
+                    )
+            
+            # Save the json dict to a new file 
+            with open(target_name, 'w') as file:
+                file.write(json_str)
+            
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
@@ -200,7 +257,7 @@ class Cityscapes(VisionDataset):
         for i, t in enumerate(self.target_type):
             if t == "polygon":
                 target = self._load_json(self.targets[index][i])
-                target = self._filter_classes(target, self.classes_to_keep)
+                target = self._filter_classes(target, self.valid_labels)
                 
                 labels = []
                 bounding_boxes = []
@@ -217,7 +274,17 @@ class Cityscapes(VisionDataset):
                     max_x = max(polygon, key=lambda x: x[0])[0]
                     max_y = max(polygon, key=lambda x: x[1])[1]
                     
+                    if min_x == max_x or min_y == max_y:
+                        print(f"Invalid bounding box: {min_x}, {min_y}, {max_x}, {max_y}")
+                        continue
+                    
                     bounding_boxes.append((min_x, min_y, max_x, max_y))
+                
+                # Transform string labels to integer labels
+                labels = [self.label2idx[label] for label in labels]
+                
+                # Transform labels to int64 tensor
+                labels = torch.tensor(labels, dtype=torch.int64)
                 
                 target = {
                     'labels': labels,
@@ -258,13 +325,12 @@ class Cityscapes(VisionDataset):
             data = json.load(file)
         return data
     
-    import json
-
-    def _filter_classes(self, data, classes_to_keep):
+    
+    def _filter_classes(self, data, valid_labels):
         # Parse the JSON string into a Python dictionary
         
         # Filter out objects with unwanted classes
-        data['objects'] = [obj for obj in data['objects'] if obj['label'] in classes_to_keep]
+        data['objects'] = [obj for obj in data['objects'] if obj['label'] in valid_labels]
         
         return data
 
@@ -276,5 +342,19 @@ class Cityscapes(VisionDataset):
             return f"{mode}_labelIds.png"
         elif target_type == "color":
             return f"{mode}_color.png"
+        elif target_type == "boxes":
+            return f"{mode}_boxes.json"
         else:
             return f"{mode}_polygons.json"
+
+
+
+if __name__ == '__main__':
+    import torchvision
+    VALID_LABELS = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'background']
+    STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
+
+    dataset = Cityscapes('/work/baardrw/cityscapesDataset', split='train', mode='fine',
+                         target_type='polygon', valid_labels=VALID_LABELS, label2idx=STR2IDX)
+    
+    dataset.create_bb_dataset()
