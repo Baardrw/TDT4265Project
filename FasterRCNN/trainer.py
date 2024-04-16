@@ -10,7 +10,7 @@ import torchmetrics
 
 from torch import nn
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator, RPNHead
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
 import munch
@@ -72,6 +72,8 @@ class LitModel(pl.LightningModule):
                 aspect_ratios=tuple([(0.25, 0.5, 1.0, 2.0) for _ in range(5)]))
             
             self.model.rpn.anchor_generator = anchor_generator
+            
+            self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
             
             
         else:
