@@ -5,6 +5,8 @@ max_epochs: 100
 batch_size: 8
 
 use_pretrained_weights: true
+pretrained_weights_path: /work/baardrw/fasterrcnn_resnet50_fpn_coco_grayscale.pth
+
 image_h: 256
 image_w: 512
 
@@ -17,7 +19,7 @@ devices: auto
 enable_progress_bar: True
 
 wandb_project: FasterRCNN
-wandb_experiment_name: FasterRCNN_CityScapes_Larger_Image
+wandb_experiment_name: FasterRCNN_CityScapes_GrayScale_Tuned_Weights
 
 train_split_ratio: 0.8
 data_root: /work/baardrw/cityscapesDataset

@@ -1,3 +1,4 @@
+import math
 import torchmetrics.detection
 import torchmetrics.detection.mean_ap
 from datamodule import CityscapesDataModule
@@ -9,7 +10,8 @@ import torchmetrics
 
 from torch import nn
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator
+from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
 import munch
 import yaml
@@ -31,8 +33,44 @@ class LitModel(pl.LightningModule):
         self.num_classes = len(VALID_LABELS)
         
         # Setting up model
-        weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT if config.use_pretrained_weights else None
-        self.model = fasterrcnn_resnet50_fpn(weights=weights)
+        
+        
+        if config.use_pretrained_weights:
+            self.model = fasterrcnn_resnet50_fpn(weights=None)
+            
+            # Loading weights finetuned on COCO greyscale https://huggingface.co/Theem/fasterrcnn_resnet50_fpn_grayscale
+            # Load pretrained weights
+            state_dict = torch.load(self.config.pretrained_weights_path)['model']
+            # Adapt input convolution
+            self.model.backbone.body.conv1 = torch.nn.Conv2d(1, 64,
+                                        kernel_size=(7, 7), stride=(2, 2),
+                                        padding=(3, 3), bias=False).requires_grad_(True)
+            
+            self.model.load_state_dict(state_dict)
+            
+            # Changing the transforms to grayscale
+            
+            coco_mean = [0.485, 0.456, 0.406]
+            coco_std = [0.229, 0.224, 0.225]
+            
+            coco_mean_grayscale = [0.2989 * coco_mean[0] + 0.5870 * coco_mean[1] + 0.1140 * coco_mean[2]]# The exact formula used by torchvision.transforms.Grayscale
+            coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
+            print(coco_mean_grayscale, coco_std_grayscale)
+            
+            transform = GeneralizedRCNNTransform(
+                                                min_size=800,
+                                                max_size=1333,
+                                                image_mean=coco_mean_grayscale,
+                                                image_std=coco_std_grayscale
+                                                )
+            
+            self.model.transform = transform
+            
+            
+        else:
+            # TODO:
+            NotImplementedError("No support for training from scratch yet.")
+                    
         in_features = self.model.roi_heads.box_predictor.cls_score.in_features
         self.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=self.num_classes)
         
@@ -82,6 +120,11 @@ class LitModel(pl.LightningModule):
             {
                 "val/map_50": map['map_50'],
                 "val/map_75": map['map_75'],
+                "val/map": map['map'],
+                "val/map_small": map['map_small'],
+                "val/map_medium": map['map_medium'],
+                "val/map_large": map['map_large'],
+                
                 "val/loss": losses
             }
         ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))        
@@ -97,7 +140,12 @@ class LitModel(pl.LightningModule):
         self.log_dict(
             {
                 "test/map_50": map['map_50'],
-                "test/map_75": map['map_75']
+                "test/map_75": map['map_75'],
+                
+                "test/map": map['map'],
+                "test/map_small": map['map_small'],
+                "test/map_medium": map['map_medium'],
+                "test/map_large": map['map_large'],
             }
         ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))
         

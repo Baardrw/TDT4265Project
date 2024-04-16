@@ -7,6 +7,7 @@ batch_size: 128
 in_channels: 3
 num_classes: 100
 use_pretrained_weights: true
+pretrained_weights_path: /work/baardrw/checkpoint
 
 test_model: false
 checkpoint_path: #checkpoints/*****.ckpt used for 
