@@ -68,8 +68,8 @@ class LitModel(pl.LightningModule):
             
             # Create custom anchor generator
             anchor_gen = AnchorGenerator(
-                sizes=((8, 16, 32, 64, 128) for i in range(5)),
-                aspect_ratios=((0.25, 0.5, 1.0, 2.0) for j in range(5))
+                sizes=([(8, 16, 32, 64, 128) for i in range(5)]),
+                aspect_ratios=([(0.25, 0.5, 1.0, 2.0) for j in range(5)])
             )
             
             self.model.rpn.anchor_generator = anchor_gen
