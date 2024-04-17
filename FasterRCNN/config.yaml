@@ -1,8 +1,8 @@
-max_lr: 0.005
+max_lr: 0.01
 weight_decay: 0.0005
 momentum: 0.9
 max_epochs: 100
-batch_size: 8
+batch_size: 16
 
 use_pretrained_weights: true
 pretrained_weights_path: /work/baardrw/fasterrcnn_resnet50_fpn_coco_grayscale.pth
@@ -11,7 +11,7 @@ image_h: 256
 image_w: 512
 
 test_model: false
-checkpoint_path: #checkpoints/*****.ckpt used for 
+checkpoint_path: #checkpoints/FasterRCNN/FasterRCNN_CityScapes_GrayScale_bs4/best_model:epoch=98-val_map_50=0.4435.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
@@ -19,11 +19,13 @@ devices: auto
 enable_progress_bar: True
 
 wandb_project: FasterRCNN
-wandb_experiment_name: FasterRCNN_CityScapes_GrayScale_Tuned_Weights
+wandb_experiment_name: FasterRCNN_CityScapes_GrayScale_bs16_notignoringcar
 
 train_split_ratio: 0.8
 data_root: /work/baardrw/cityscapesDataset
 mode: fine
 checkpoint_folder: ./checkpoints/
+
+
 
 

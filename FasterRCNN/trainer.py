@@ -8,10 +8,13 @@ from lightning.pytorch.loggers import WandbLogger
 import torch
 import torchmetrics
 
-from torch import nn
+from torch import nn, mul, add
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator, RPNHead
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
+from torchvision.transforms import v2
+from torchvision import utils
+
 
 import munch
 import yaml
@@ -20,7 +23,7 @@ from pathlib import Path
 torch.set_float32_matmul_precision('medium')
 config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 
-VALID_LABELS = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'background']
+VALID_LABELS = ['background', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'car']
 STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
 class LitModel(pl.LightningModule):
@@ -53,27 +56,27 @@ class LitModel(pl.LightningModule):
             coco_mean = [0.485, 0.456, 0.406]
             coco_std = [0.229, 0.224, 0.225]
             
-            coco_mean_grayscale = [0.2989 * coco_mean[0] + 0.5870 * coco_mean[1] + 0.1140 * coco_mean[2]]# The exact formula used by torchvision.transforms.Grayscale
-            coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
-            print(coco_mean_grayscale, coco_std_grayscale)
+            self.coco_mean_grayscale = [0.2989 * coco_mean[0] + 0.5870 * coco_mean[1] + 0.1140 * coco_mean[2]]# The exact formula used by torchvision.transforms.Grayscale
+            self.coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
+            print(self.coco_mean_grayscale, self.coco_std_grayscale)
             
             transform = GeneralizedRCNNTransform(
                                                 min_size=800,
                                                 max_size=1333,
-                                                image_mean=coco_mean_grayscale,
-                                                image_std=coco_std_grayscale
+                                                image_mean=self.coco_mean_grayscale,
+                                                image_std=self.coco_std_grayscale
                                                 )
             
             self.model.transform = transform
             
             # Create custom anchor generator
-            anchor_generator = AnchorGenerator(
-                sizes=((32,), (64,), (128,), (256,), (512,)),
-                aspect_ratios=tuple([(0.25, 0.5, 0.7, 1.0, 2.0) for _ in range(5)]))
+         #   anchor_generator = AnchorGenerator(
+          #      sizes=((32,), (64,), (128,), (256,), (512,)),
+           #     aspect_ratios=tuple([(0.25, 0.5, 0.7, 1.0, 2.0) for _ in range(5)]))
             
-            self.model.rpn.anchor_generator = anchor_generator
+           # self.model.rpn.anchor_generator = anchor_generator
             
-            self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
+           # self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
             
             
         else:
@@ -103,6 +106,9 @@ class LitModel(pl.LightningModule):
         return output
 
     def training_step(self, batch, batch_idx):
+        
+        # if self.current_epoch == 5:
+        #     self.model.backbone.trainable_layers = 0
         
         images, targets = batch
         loss_dict = self.model(images, targets)
@@ -139,25 +145,57 @@ class LitModel(pl.LightningModule):
         ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))        
     
     def test_step(self, batch, batch_idx):
-        images, targets = batch
+        images = [i.unsqueeze(0) for i in  batch[0] ]
         
         self.model.eval()
         outputs = self.model(images)
-        self.val_map.update(outputs, targets)
-        map = self.val_map.compute()
+        # self.val_map.update(outputs, targets)
+        # map = self.val_map.compute()
         
-        self.log_dict(
-            {
-                "test/map_50": map['map_50'],
-                "test/map_75": map['map_75'],
+        # self.log_dict(
+        #     {
+        #         "test/map_50": map['map_50'],
+        #         "test/map_75": map['map_75'],
                 
-                "test/map": map['map'],
-                "test/map_small": map['map_small'],
-                "test/map_medium": map['map_medium'],
-                "test/map_large": map['map_large'],
-            }
-        ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))
+        #         "test/map": map['map'],
+        #         "test/map_small": map['map_small'],
+        #         "test/map_medium": map['map_medium'],
+        #         "test/map_large": map['map_large'],
+        #     }
+        # ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))
         
+        self.draw_boxes(images, outputs)
+        
+
+    def draw_boxes(self, images, outputs):
+        mean = [0.3090844516698354]
+        std = [0.17752945677448584]
+        
+        for i in range(len(images)):
+            output = outputs[i]
+            
+            
+            image_tensor = v2.functional.to_dtype(images[i], torch.float32)
+            de_normed = add(mul(image_tensor, self.coco_std_grayscale[0]), self.coco_mean_grayscale[0])
+            de_normed = add(mul(image_tensor, std[0]), mean[0])
+            
+            image_uint8 = (de_normed * 255).type(torch.uint8)
+            # print(output['boxes'])
+            
+            labels = [VALID_LABELS[label_id] for label_id in output['labels']]
+            img = utils.draw_bounding_boxes(image_uint8, output['boxes'], labels=labels, width=1) # TODO: labels
+
+            import matplotlib.pyplot as plt
+            
+            if img.numpy().transpose(1, 2, 0).shape[2] == 1:
+                plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0)[:, :, 0], cmap='gray')
+            else:
+                plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0))            
+        
+        exit()
+            
+            
+           
 
 if __name__ == "__main__":
     

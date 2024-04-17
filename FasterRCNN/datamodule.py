@@ -70,7 +70,7 @@ class CityscapesDataModule(pl.LightningDataModule):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False, collate_fn=self.collate_fn)
 
     def test_dataloader(self):
-        test_dataset = datasets.Cityscapes(
+        test_dataset = Cityscapes(
             root=self.data_root,
             mode=self.mode,
             target_type='polygon',
@@ -125,10 +125,10 @@ if __name__ == '__main__':
 
     # Test the data loader
     loader = CityscapesDataModule(
-        data_root='/home/bard/Documents/cityscapes',
+        # data_root='/home/bard/Documents/cityscapes',
         valid_labels=VALID_LABELS,
         label2idx=STR2IDX,
-        image_dimensions=[256, 512]
+        image_dimensions=[256, 512],
     )
     loader.setup()
     print(len(loader.train_dataset))
