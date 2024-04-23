@@ -1,30 +1,33 @@
-max_lr: 0.01
+max_lr: 0.005
 weight_decay: 0.0005
 momentum: 0.9
-max_epochs: 100
-batch_size: 16
+max_epochs: 200
+batch_size: 4
 
 use_pretrained_weights: true
 pretrained_weights_path: /work/baardrw/fasterrcnn_resnet50_fpn_coco_grayscale.pth
 
-image_h: 256
-image_w: 512
+image_h: 128
+image_w: 256
 
 test_model: false
-checkpoint_path: #checkpoints/FasterRCNN/FasterRCNN_CityScapes_GrayScale_bs4/best_model:epoch=98-val_map_50=0.4435.ckpt
+checkpoint_path: checkpoints/FasterRCNN/FasterRCNN_CityScapes_GrayScale_Baseline_BS_12/best_model:epoch=98-val_map_50=0.5458.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
 devices: auto
 enable_progress_bar: True
 
-wandb_project: FasterRCNN
-wandb_experiment_name: FasterRCNN_CityScapes_GrayScale_bs16_notignoringcar
+wandb_project: FasterRCNN_fine_tune
+wandb_experiment_name: FasterRCNN_pretrained_on_256x512
+
+# Root for pretraining dataset /work/baardrw/cityscapesDataset
 
 train_split_ratio: 0.8
-data_root: /work/baardrw/cityscapesDataset
+pre_train: false
+data_root: /datasets/tdt4265/ad/NAPLab-LiDAR
 mode: fine
-checkpoint_folder: ./checkpoints/
+checkpoint_folder: ./checkpoints/nap/
 
 
 

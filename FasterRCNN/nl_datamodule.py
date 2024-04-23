@@ -1,38 +1,27 @@
 import lightning.pytorch as pl
 import numpy as np
-from torch.utils.data import DataLoader, Subset
-from torchvision import datasets, transforms, utils, tv_tensors
+from torch.utils.data import DataLoader
+from torchvision import utils
 from torchvision.transforms import v2
 import torch
-from torchvision.tv_tensors import BoundingBoxes
 
 
-from cityscapes import Cityscapes
+from naplab import NapLab
 
 
-class CityscapesDataModule(pl.LightningDataModule):
+class NapLabDataModule(pl.LightningDataModule):
     def __init__(self,
                  batch_size=30,
                  num_workers=11,
-                 data_root="/work/baardrw/cityscapesDataset",
-                 label2idx=None,
-                 valid_labels=None,
-                 mode='fine',
-                 device='cuda',
+                 data_root="/datasets/tdt4265/ad/NAPLab-LiDAR",
                  image_dimensions = [128, 256]
         ):
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.data_root = data_root
-        self.label2idx = label2idx
-        self.mode = mode
         self.image_dimensions = image_dimensions
 
-        if valid_labels == None:
-            self.valid_labels = [24, 25, 26, 27, 28, 33]
-        else:
-            self.valid_labels = valid_labels
 
     def prepare_data(self):
         # Download the dataset if needed (only using rank 1)
@@ -40,24 +29,16 @@ class CityscapesDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         # Split the dataset into train and validation sets
-        self.train_dataset = Cityscapes(
+        self.train_dataset = NapLab(
             root=self.data_root,
-            mode=self.mode,
-            target_type='polygon',
             split='train',
             transforms=self.get_transforms("train"),
-            valid_labels=self.valid_labels,
-            label2idx=self.label2idx
         )
 
-        self.val_dataset = Cityscapes(
+        self.val_dataset = NapLab(
             root=self.data_root,
-            mode=self.mode,
-            target_type='polygon',
             split='val',
             transforms=self.get_transforms("val"),
-            valid_labels=self.valid_labels,
-            label2idx=self.label2idx
         )
 
     def collate_fn(self, batch):
@@ -70,34 +51,27 @@ class CityscapesDataModule(pl.LightningDataModule):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False, collate_fn=self.collate_fn)
 
     def test_dataloader(self):
-        test_dataset = Cityscapes(
+        test_dataset = NapLab(
             root=self.data_root,
-            mode=self.mode,
-            target_type='polygon',
             split='test',
-            transform=self.get_transforms("test"),
-            valid_labels=self.valid_labels,
-            label2idx=self.label2idx,
+            transforms=self.get_transforms("test"),
         )
         
-        return DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False, collate_fn=self.collate_fn)
+        return DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=True, collate_fn=self.collate_fn)
 
-    def target_transform(self, target):
-        # print(target)
-        return target
 
     def get_transforms(self, split, label=False):
-        mean = [0.3090844516698354]
-        std = [0.17752945677448584]
+        mean = [0.4701497724237717] # taken from data analysis of naplab dataset
+        std = [0.2970671789647479]
 
         shared_transforms = [
             v2.ToImage(),
-            v2.Grayscale(num_output_channels=1),
             v2.ToDtype(torch.float32, scale=True),
             v2.Normalize(mean=mean, std=std),
-            v2.RandomResizedCrop(size=(self.image_dimensions[0], self.image_dimensions[1]), antialias=True),
             
-            v2.SanitizeBoundingBoxes(),
+            v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
+            v2.ClampBoundingBoxes(),
+            v2.SanitizeBoundingBoxes()
         ]
 
         if split == "train":
@@ -120,15 +94,12 @@ class CityscapesDataModule(pl.LightningDataModule):
 
 if __name__ == '__main__':
     import torchvision
-    VALID_LABELS = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'background']
-    STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
     # Test the data loader
-    loader = CityscapesDataModule(
+    loader = NapLabDataModule(
         # data_root='/home/bard/Documents/cityscapes',
-        valid_labels=VALID_LABELS,
-        label2idx=STR2IDX,
-        image_dimensions=[256, 512],
+        batch_size=30,
+        num_workers=0,
     )
     loader.setup()
     print(len(loader.train_dataset))
@@ -145,6 +116,13 @@ if __name__ == '__main__':
     for i in range(len(batch[0])):
         # # transform train_ds[0][0] to uint8
         all_bbs = batch[1][i]['boxes']
+        print(len(all_bbs))
+        labels = batch[1][i]['labels']
+        
+        # for j in range(len(all_bbs)):
+        #     print(labels[j])
+        #     print(all_bbs[j])
+            
 
         image_tensor = v2.functional.to_dtype(batch[0][i], torch.float32)
 

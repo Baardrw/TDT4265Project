@@ -1,7 +1,6 @@
 import math
 import torchmetrics.detection
 import torchmetrics.detection.mean_ap
-from datamodule import CityscapesDataModule
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import WandbLogger
@@ -13,17 +12,34 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_Res
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator, RPNHead
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.transforms import v2
-from torchvision import utils
+from torchvision import utils, ops
 
 
 import munch
 import yaml
 from pathlib import Path
 
+from nl_datamodule import NapLabDataModule
+from cs_datamodule import CityscapesDataModule
+
+
 torch.set_float32_matmul_precision('medium')
 config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 
 VALID_LABELS = ['background', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'car']
+
+if not config.pre_train:
+    VALID_LABELS = [
+            "background",
+            "truck",
+            "bus",
+            "bicycle",
+            "scooter",
+            "person",
+            "rider",
+            "car"
+        ]
+    
 STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
 class LitModel(pl.LightningModule):
@@ -70,13 +86,13 @@ class LitModel(pl.LightningModule):
             self.model.transform = transform
             
             # Create custom anchor generator
-         #   anchor_generator = AnchorGenerator(
-          #      sizes=((32,), (64,), (128,), (256,), (512,)),
-           #     aspect_ratios=tuple([(0.25, 0.5, 0.7, 1.0, 2.0) for _ in range(5)]))
+            # anchor_generator = AnchorGenerator(
+            #     sizes=((16,), (32,), (64,), (128,), (256,)),
+            #     aspect_ratios=tuple([(0.25, 0.5, 1.0, 1.5 ,2.0) for _ in range(5)]))
             
-           # self.model.rpn.anchor_generator = anchor_generator
+            # self.model.rpn.anchor_generator = anchor_generator
             
-           # self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
+            # self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
             
             
         else:
@@ -85,7 +101,7 @@ class LitModel(pl.LightningModule):
                     
         in_features = self.model.roi_heads.box_predictor.cls_score.in_features
         self.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=self.num_classes)
-        
+        self.model.box_detections_per_img = 53
         # Setting up the metric
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
             box_format="xyxy",
@@ -148,7 +164,8 @@ class LitModel(pl.LightningModule):
         images = [i.unsqueeze(0) for i in  batch[0] ]
         
         self.model.eval()
-        outputs = self.model(images)
+        outputs = self.model(images) 
+        
         # self.val_map.update(outputs, targets)
         # map = self.val_map.compute()
         
@@ -171,9 +188,19 @@ class LitModel(pl.LightningModule):
         mean = [0.3090844516698354]
         std = [0.17752945677448584]
         
+        mean = [0.4701497724237717] # taken from data analysis of naplab dataset
+        std = [0.2970671789647479]
+        
         for i in range(len(images)):
             output = outputs[i]
             
+            print(output['boxes'].shape)
+            
+            keep = ops.nms(output['boxes'], output['scores'], iou_threshold=0.3)
+            output['boxes'] = torch.index_select(output['boxes'], 0, keep)
+            output['labels'] = torch.index_select(output['labels'], 0, keep)
+            
+            print(output['boxes'].shape)
             
             image_tensor = v2.functional.to_dtype(images[i], torch.float32)
             de_normed = add(mul(image_tensor, self.coco_std_grayscale[0]), self.coco_mean_grayscale[0])
@@ -185,6 +212,7 @@ class LitModel(pl.LightningModule):
             labels = [VALID_LABELS[label_id] for label_id in output['labels']]
             img = utils.draw_bounding_boxes(image_uint8, output['boxes'], labels=labels, width=1) # TODO: labels
 
+            img = img.cpu()
             import matplotlib.pyplot as plt
             
             if img.numpy().transpose(1, 2, 0).shape[2] == 1:
@@ -201,19 +229,29 @@ if __name__ == "__main__":
     
     pl.seed_everything(42)
     
-    dm = CityscapesDataModule(
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        data_root=config.data_root,
-        mode=config.mode,
-        valid_labels=VALID_LABELS,
-        label2idx=STR2IDX,
-        image_dimensions=[config.image_h, config.image_w],
-    )
+    if config.pre_train:
+        dm = CityscapesDataModule(
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            data_root=config.data_root,
+            mode=config.mode,
+            valid_labels=VALID_LABELS,
+            label2idx=STR2IDX,
+            image_dimensions=[config.image_h, config.image_w],
+        )
+    else:
+        dm = NapLabDataModule(
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            data_root=config.data_root,
+            image_dimensions=[config.image_h, config.image_w],
+        )
     
     if config.checkpoint_path:
         model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
         print("Loading weights from checkpoint...")
+        model.model.box_detections_per_img = 53
+
     else:
         model = LitModel(config)
 
