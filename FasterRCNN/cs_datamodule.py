@@ -94,7 +94,7 @@ class CityscapesDataModule(pl.LightningDataModule):
             v2.ToImage(),
             v2.Grayscale(num_output_channels=1),
             v2.ToDtype(torch.float32, scale=True),
-            v2.Normalize(mean=mean, std=std),
+            # v2.Normalize(mean=mean, std=std),
             v2.RandomResizedCrop(size=(self.image_dimensions[0]//2, self.image_dimensions[1]//2), antialias=True),
             v2.Resize(size=(self.image_dimensions[0], self.image_dimensions[1]), interpolation=InterpolationMode.NEAREST),                
             
@@ -107,7 +107,7 @@ class CityscapesDataModule(pl.LightningDataModule):
             return v2.Compose([
                 *shared_transforms,
                 # v2.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
-                v2.RandomPosterize(bits=4),
+                # v2.RandomPosterize(bits=4),
                 # v2.Lambda(lambda x: x is  torch.nn.functional.avg_pool2d(x, kernel_size=3, stride=2))
             ])
 

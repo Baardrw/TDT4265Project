@@ -75,8 +75,8 @@ class LitModel(pl.LightningModule):
             self.coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
             
             # Testing training with just normalizing using the correct mean and std for the dataset
-            # self.coco_mean_grayscale = [0.3090844516698354]
-            # self.coco_std_grayscale  = [0.17752945677448584]
+            self.coco_mean_grayscale = [0.3090844516698354]
+            self.coco_std_grayscale  = [0.17752945677448584]
             
             transform = GeneralizedRCNNTransform(
                                                 min_size=800,
