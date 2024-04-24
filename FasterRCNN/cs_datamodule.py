@@ -2,7 +2,7 @@ import lightning.pytorch as pl
 import numpy as np
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms, utils, tv_tensors
-from torchvision.transforms import v2
+from torchvision.transforms import v2, InterpolationMode
 import torch
 from torchvision.tv_tensors import BoundingBoxes
 
@@ -75,7 +75,7 @@ class CityscapesDataModule(pl.LightningDataModule):
             mode=self.mode,
             target_type='polygon',
             split='test',
-            transform=self.get_transforms("test"),
+            transforms=self.get_transforms("test"),
             valid_labels=self.valid_labels,
             label2idx=self.label2idx,
         )
@@ -95,7 +95,9 @@ class CityscapesDataModule(pl.LightningDataModule):
             v2.Grayscale(num_output_channels=1),
             v2.ToDtype(torch.float32, scale=True),
             v2.Normalize(mean=mean, std=std),
-            v2.RandomResizedCrop(size=(self.image_dimensions[0], self.image_dimensions[1]), antialias=True),
+            v2.RandomResizedCrop(size=(self.image_dimensions[0]//2, self.image_dimensions[1]//2), antialias=True),
+            v2.Resize(size=(self.image_dimensions[0], self.image_dimensions[1]), interpolation=InterpolationMode.NEAREST),                
+            
             v2.ClampBoundingBoxes(),
             v2.SanitizeBoundingBoxes(),
         ]
@@ -104,6 +106,9 @@ class CityscapesDataModule(pl.LightningDataModule):
 
             return v2.Compose([
                 *shared_transforms,
+                # v2.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+                v2.RandomPosterize(bits=4),
+                # v2.Lambda(lambda x: x is  torch.nn.functional.avg_pool2d(x, kernel_size=3, stride=2))
             ])
 
         elif split == "val":

@@ -70,6 +70,7 @@ class NapLabDataModule(pl.LightningDataModule):
             v2.Normalize(mean=mean, std=std),
             
             v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
+            
             v2.ClampBoundingBoxes(),
             v2.SanitizeBoundingBoxes()
         ]

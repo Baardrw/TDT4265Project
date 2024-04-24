@@ -303,19 +303,6 @@ class Cityscapes(VisionDataset):
 
         target = tuple(targets) if len(targets) > 1 else targets[0]
         
-        if self.split == 'test':
-            mean = [0.3090844516698354]
-            std = [0.17752945677448584]
-            shared_transforms = v2.Compose([
-            v2.ToImage(),
-            v2.Grayscale(num_output_channels=1),
-            v2.ToDtype(torch.float32, scale=True),
-            v2.Normalize(mean=mean, std=std),
-            v2.RandomResizedCrop(size=(256, 512), antialias=True),
-            
-            # v2.SanitizeBoundingBoxes(),
-        ])
-            return shared_transforms(image)
         
         if self.transforms is not None:
             # target is a list of tuple[labels, bounding_boxes]
@@ -324,7 +311,9 @@ class Cityscapes(VisionDataset):
             # Remove the background label and bounding box
             target['labels'] = target['labels'][1:]
             target['boxes'] = target['boxes'][1:]
-            
+        
+        if self.split == 'test':
+            return image
             
         return image, target
 

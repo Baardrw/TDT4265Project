@@ -68,13 +68,15 @@ class LitModel(pl.LightningModule):
             self.model.load_state_dict(state_dict)
             
             # Changing the transforms to grayscale
-            
             coco_mean = [0.485, 0.456, 0.406]
             coco_std = [0.229, 0.224, 0.225]
             
             self.coco_mean_grayscale = [0.2989 * coco_mean[0] + 0.5870 * coco_mean[1] + 0.1140 * coco_mean[2]]# The exact formula used by torchvision.transforms.Grayscale
             self.coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
-            print(self.coco_mean_grayscale, self.coco_std_grayscale)
+            
+            # Testing training with just normalizing using the correct mean and std for the dataset
+            # self.coco_mean_grayscale = [0.3090844516698354]
+            # self.coco_std_grayscale  = [0.17752945677448584]
             
             transform = GeneralizedRCNNTransform(
                                                 min_size=800,
