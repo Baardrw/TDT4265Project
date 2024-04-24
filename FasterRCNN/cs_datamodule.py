@@ -19,7 +19,7 @@ class CityscapesDataModule(pl.LightningDataModule):
                  valid_labels=None,
                  mode='fine',
                  device='cuda',
-                 image_dimensions = [256, 512],
+                 image_dimensions = [512, 1024],
                  resize_dims = [512, 512]
         ):
         super().__init__()
@@ -93,23 +93,26 @@ class CityscapesDataModule(pl.LightningDataModule):
         std = [0.17752945677448584]
 
         shared_transforms = [
+            
             v2.ToImage(),
+            
             v2.Grayscale(num_output_channels=1),
             v2.ToDtype(torch.float32, scale=True),
             # v2.Normalize(mean=mean, std=std),
             v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
+            
             v2.Resize(size=(self.resize_dims[0], self.resize_dims[1]), antialias=True),
             v2.ClampBoundingBoxes(),
             v2.SanitizeBoundingBoxes(),
+           
         ]
 
         if split == "train":
 
             return v2.Compose([
                 *shared_transforms,
-                # v2.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
-                # v2.RandomPosterize(bits=4),
-                # v2.Lambda(lambda x: x is  torch.nn.functional.avg_pool2d(x, kernel_size=3, stride=2))
+                v2.RandomApply([v2.RandomRotation(degrees=5),  v2.ColorJitter(brightness=0.5, contrast= (1,10)), v2.RandomResize(min_size=256, max_size=1024)], p=0.3),
+                v2.SanitizeBoundingBoxes(),
             ])
 
         elif split == "val":
@@ -134,7 +137,7 @@ if __name__ == '__main__':
         # data_root='/home/bard/Documents/cityscapes',
         valid_labels=VALID_LABELS,
         label2idx=STR2IDX,
-        image_dimensions=[256, 512],
+        image_dimensions=[512, 1024],
     )
     loader.setup()
     print(len(loader.train_dataset))

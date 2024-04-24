@@ -10,3 +10,6 @@ a single scale of 1024 pixels. We use a mini-batch size of
 for 24k iterations, starting from a learning rate of 0.01 and
 reducing it to 0.001 at 18k iterations. It takes ∼4 hours of
 training on a single 8-GPU machine under this setting.
+
+
+Maybe add more transforms to fit better to naplab dataset
