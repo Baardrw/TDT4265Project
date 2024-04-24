@@ -172,18 +172,28 @@ class Cityscapes(VisionDataset):
                     "Dataset not found or incomplete. Please make sure all required folders for the"
                     ' specified "split" and "mode" are inside the "root" directory'
                 )
-
+        i = 0
         for city in os.listdir(self.images_dir):
-            print(city)
+            img_dir = os.path.join(self.images_dir, city)
+            target_dir = os.path.join(self.targets_dir, city)
             if city != '.DS_Store':
                 img_dir = os.path.join(self.images_dir, city)
-                target_dir = os.path.join(self.targets_dir, city)
+
                 for file_name in os.listdir(img_dir):
                     target_types = []
                     for t in self.target_type:
                         target_name = "{}_{}".format(
-                            file_name.split("_leftImg8bit")[0], self._get_target_suffix(self.mode, t)
+                        file_name.split("_leftImg8bit")[0], self._get_target_suffix(self.mode, t)
                         )
+                        origin = os.path.join(img_dir, file_name)
+                        destination = "/work/ianma/cityscapes_yolo/images/{}.png".format(str(i).zfill(6))
+                        os.system("cp {} {}".format(origin, destination))
+                        # copyfile(origin, destination) 
+                        i += 1
+
+                        # "{}_{}".format(
+                        #     file_name.split("_leftImg8bit")[0], self._get_target_suffix(self.mode, t)
+                        # )
                         target_types.append(os.path.join(target_dir, target_name))
 
                     self.images.append(os.path.join(img_dir, file_name))
@@ -193,7 +203,7 @@ class Cityscapes(VisionDataset):
         if self.target_type != ['polygon']:
             raise ValueError(f"Only target_type='polygon' is supported for this method, type is {self.target_type}")
         
-        
+        i = 0
         for target in self.targets:
             target = target[0]
             
@@ -202,12 +212,15 @@ class Cityscapes(VisionDataset):
             
             labels = []
             bounding_boxes = []
+            yolo_objects = []
             
             labels.append('background')
             bounding_boxes.append((0, 0, 2048, 1024))
             
             for object in t['objects']:
-                labels.append(object['label'])
+                label = self.label2idx[object['label']]
+                yolo_object = [label]
+                
                 polygon = object['polygon']
                 
                 min_x = min(polygon, key=lambda x: x[0])[0]
@@ -218,27 +231,27 @@ class Cityscapes(VisionDataset):
                 if min_x == max_x or min_y == max_y:
                     print(f"Invalid bounding box: {min_x}, {min_y}, {max_x}, {max_y}")
                     continue
-                
-                bounding_boxes.append((min_x, min_y, max_x, max_y))
-            
-            # Transform string labels to integer labels
-            labels = [self.label2idx[label] for label in labels]
-            
-            # Make the bounding box and id into a json dict and save it to the same directory as the polygon
-            target_dict = {
-                    'labels': labels,
-                    'boxes': bounding_boxes
-                }
-            
-            json_str = json.dumps(target_dict)
-            print(target)
-            target_name = "{}_{}".format(target.split(self._get_target_suffix(self.mode, 'polygon'))[0], self._get_target_suffix(self.mode, 'boxes'))
+
+                x_center = round((max_x-min_x)/(2*2048), 6)
+                y_center = round((max_y-min_y)/(2*1024), 6)
+                width = round((max_x-min_x)/2048, 6)
+                height = round((max_y-min_y)/1024, 6)
+
+                # yolo_object += [min_x, min_y, max_x, max_y]
+
+                yolo_object += [x_center, y_center, width, height]
+
+                yolo_objects.append(yolo_object)
+
             
             # Save the json dict to a new file 
-            print(target_name)
-            with open(target_name, 'w') as file:
-                file.write(json_str)
-            
+            destination = "/work/ianma/cityscapes_yolo/labels/{}.txt".format(str(i).zfill(6))
+            box_strings = ["{}  {}  {}  {}  {}\n".format(yolo_object[0],yolo_object[1], yolo_object[2], yolo_object[3], yolo_object[4]) for yolo_object in yolo_objects]
+
+            with open(destination, 'w') as file:
+                file.writelines(box_strings)
+
+            i += 1
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
@@ -356,7 +369,7 @@ if __name__ == '__main__':
     VALID_LABELS = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'background']
     STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
-    dataset = Cityscapes('/Users/ianaksum/Desktop/cityscapes', split='train', mode='fine',
+    dataset = Cityscapes('/work/ianma/cityscapes', split='train', mode='fine',
                          target_type='polygon', valid_labels=VALID_LABELS, label2idx=STR2IDX)
     
     dataset.create_bb_dataset()

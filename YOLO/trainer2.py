@@ -71,22 +71,24 @@ class CustomTrainer(BaseTrainer):
 if __name__ == "__main__":
 
 
-    dm = CityscapesDataModule(        
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        data_root=config.data_root,
-        mode=config.mode,
-        valid_labels=VALID_LABELS,
-        label2idx=STR2IDX,
-        image_dimensions=[config.image_h, config.image_w],
-        )
+    # dm = CityscapesDataModule(        
+    #     batch_size=config.batch_size,
+    #     num_workers=config.num_workers,
+    #     data_root=config.data_root,
+    #     mode=config.mode,
+    #     valid_labels=VALID_LABELS,
+    #     label2idx=STR2IDX,
+    #     image_dimensions=[config.image_h, config.image_w],
+    #     )
     
     
-    trainer = CustomTrainer(config = "YOLO/modelconfig.yaml")
-    model = DetectionModel()
-    trainer.model = model
-    trainer.train_loader = dm.train_dataloader()
+    # trainer = CustomTrainer(config = "YOLO/modelconfig.yaml")
+    # model = DetectionModel()
+    # trainer.model = model
+    # trainer.train_loader = dm.train_dataloader()
 
 
 
-    trainer.train()
+    # trainer.train()
+
+    model = YOLO('yolov8n.yaml')
