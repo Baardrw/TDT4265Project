@@ -1,7 +1,7 @@
-max_lr: 0.005
+max_lr: 0.01
 weight_decay: 0.0005
 momentum: 0.9
-max_epochs: 200
+max_epochs: 50
 batch_size: 4
 
 use_pretrained_weights: true
@@ -18,8 +18,8 @@ check_val_every_n_epoch: 3
 devices: auto
 enable_progress_bar: True
 
-wandb_project: FasterRCNN_fine_tune
-wandb_experiment_name: FasterRCNN_pretrained_on_256x512_noposter_no_pre_norm
+wandb_project: fine_tune
+wandb_experiment_name: fine_tuned_on_512x512
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
@@ -27,4 +27,4 @@ train_split_ratio: 0.8
 pre_train: true
 data_root: /work/ianma/cityscapes
 mode: fine
-checkpoint_folder: ./checkpoints/nap/
+checkpoint_folder: ./checkpoints/

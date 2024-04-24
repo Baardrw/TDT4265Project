@@ -14,13 +14,15 @@ class NapLabDataModule(pl.LightningDataModule):
                  batch_size=30,
                  num_workers=11,
                  data_root="/datasets/tdt4265/ad/NAPLab-LiDAR",
-                 image_dimensions = [128, 256]
-        ):
+                 image_dimensions = [128, 256],
+                 resize_dims = [512 , 512]
+                ):
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.data_root = data_root
         self.image_dimensions = image_dimensions
+        self.resize_dims = resize_dims
 
 
     def prepare_data(self):
@@ -45,7 +47,7 @@ class NapLabDataModule(pl.LightningDataModule):
         return tuple(zip(*batch))
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=True,  collate_fn=self.collate_fn)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False,  collate_fn=self.collate_fn)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False, collate_fn=self.collate_fn)
@@ -68,17 +70,20 @@ class NapLabDataModule(pl.LightningDataModule):
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
             v2.Normalize(mean=mean, std=std),
-            
             v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
-            
+            v2.Resize(size=(self.resize_dims[0], self.resize_dims[1]), antialias=True),
             v2.ClampBoundingBoxes(),
-            v2.SanitizeBoundingBoxes()
+            v2.SanitizeBoundingBoxes(),
         ]
 
         if split == "train":
 
             return v2.Compose([
                 *shared_transforms,
+                
+                v2.RandomApply([v2.RandomRotation(degrees=10), v2.RandomHorizontalFlip(), v2.ColorJitter(brightness=0.5)], p=0.3),
+                v2.SanitizeBoundingBoxes(),
+                
             ])
 
         elif split == "val":

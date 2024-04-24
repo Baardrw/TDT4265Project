@@ -42,6 +42,24 @@ if not config.pre_train:
     
 STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
+
+def set_model_transform(model):
+    coco_mean = [0.485, 0.456, 0.406]
+    coco_std = [0.229, 0.224, 0.225]
+    
+    coco_mean_grayscale = [0.2989 * coco_mean[0] + 0.5870 * coco_mean[1] + 0.1140 * coco_mean[2]]# The exact formula used by torchvision.transforms.Grayscale
+    coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
+    print(coco_mean_grayscale, coco_std_grayscale)
+    
+    transform = GeneralizedRCNNTransform(
+                                        min_size=800,
+                                        max_size=1333,
+                                        image_mean=coco_mean_grayscale,
+                                        image_std=coco_std_grayscale
+                                        )
+    
+    model.transform = transform
+
 class LitModel(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
@@ -65,27 +83,17 @@ class LitModel(pl.LightningModule):
                                         kernel_size=(7, 7), stride=(2, 2),
                                         padding=(3, 3), bias=False).requires_grad_(True)
             
+            
+            
             self.model.load_state_dict(state_dict)
             
+            
             # Changing the transforms to grayscale
-            coco_mean = [0.485, 0.456, 0.406]
-            coco_std = [0.229, 0.224, 0.225]
+            set_model_transform(self.model)
             
-            self.coco_mean_grayscale = [0.2989 * coco_mean[0] + 0.5870 * coco_mean[1] + 0.1140 * coco_mean[2]]# The exact formula used by torchvision.transforms.Grayscale
-            self.coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
+            in_features = self.model.roi_heads.box_predictor.cls_score.in_features
+            self.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=self.num_classes)
             
-            # Testing training with just normalizing using the correct mean and std for the dataset
-            self.coco_mean_grayscale = [0.3090844516698354]
-            self.coco_std_grayscale  = [0.17752945677448584]
-            
-            transform = GeneralizedRCNNTransform(
-                                                min_size=800,
-                                                max_size=1333,
-                                                image_mean=self.coco_mean_grayscale,
-                                                image_std=self.coco_std_grayscale
-                                                )
-            
-            self.model.transform = transform
             
             # Create custom anchor generator
             # anchor_generator = AnchorGenerator(
@@ -101,9 +109,8 @@ class LitModel(pl.LightningModule):
             # TODO:
             NotImplementedError("No support for training from scratch yet.")
                     
-        in_features = self.model.roi_heads.box_predictor.cls_score.in_features
-        self.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=self.num_classes)
-        self.model.box_detections_per_img = 53
+       
+        # self.model.box_detections_per_img = 53
         # Setting up the metric
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
             box_format="xyxy",
@@ -252,11 +259,30 @@ if __name__ == "__main__":
     if config.checkpoint_path:
         model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
         print("Loading weights from checkpoint...")
-        model.model.box_detections_per_img = 53
+        
+    
+        for param in model.model.backbone.parameters():
+            print(param.requires_grad)
+        
+        print("\n\n")
+        for param in model.model.rpn.parameters():
+            print(param.requires_grad)
+        print("\n\n")
+            
+        for param in model.model.roi_heads.parameters():
+            print(param.requires_grad)
+        
+        if not config.pre_train:
+            # model.model.box_detections_per_img = 53            
+            pass        
+        
+        print("HWLOOOOO")
+            
 
     else:
         model = LitModel(config)
-
+        
+        
     trainer = pl.Trainer(
         devices=config.devices, 
         max_epochs=config.max_epochs, 
@@ -266,7 +292,7 @@ if __name__ == "__main__":
         # deterministic=True,
         logger=WandbLogger(project=config.wandb_project, name=config.wandb_experiment_name, config=config),
         callbacks=[
-            EarlyStopping(monitor="val/map_50", patience=config.early_stopping_patience, mode="max", verbose=True),
+            EarlyStopping(monitor="val/map", patience=config.early_stopping_patience, mode="max", verbose=True),
             LearningRateMonitor(logging_interval="step"),
             ModelCheckpoint(dirpath=Path(config.checkpoint_folder, config.wandb_project, config.wandb_experiment_name), 
                             filename='best_model:epoch={epoch:02d}-val_map_50={val/map_50:.4f}',
