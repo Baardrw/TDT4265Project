@@ -19,7 +19,8 @@ class CityscapesDataModule(pl.LightningDataModule):
                  valid_labels=None,
                  mode='fine',
                  device='cuda',
-                 image_dimensions = [128, 256]
+                 image_dimensions = [256, 512],
+                 resize_dims = [512, 512]
         ):
         super().__init__()
         self.batch_size = batch_size
@@ -28,6 +29,7 @@ class CityscapesDataModule(pl.LightningDataModule):
         self.label2idx = label2idx
         self.mode = mode
         self.image_dimensions = image_dimensions
+        self.resize_dims = resize_dims
 
         if valid_labels == None:
             self.valid_labels = [24, 25, 26, 27, 28, 33]
@@ -94,8 +96,9 @@ class CityscapesDataModule(pl.LightningDataModule):
             v2.ToImage(),
             v2.Grayscale(num_output_channels=1),
             v2.ToDtype(torch.float32, scale=True),
-            v2.Normalize(mean=mean, std=std),
-            v2.RandomResizedCrop(size=(self.image_dimensions[0], self.image_dimensions[1]), antialias=True),
+            # v2.Normalize(mean=mean, std=std),
+            v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
+            v2.Resize(size=(self.resize_dims[0], self.resize_dims[1]), antialias=True),
             v2.ClampBoundingBoxes(),
             v2.SanitizeBoundingBoxes(),
         ]

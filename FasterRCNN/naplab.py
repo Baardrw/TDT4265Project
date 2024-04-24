@@ -12,7 +12,7 @@ from PIL import Image
 from torchvision.datasets.utils import extract_archive, iterable_to_str, verify_str_arg
 from torchvision.datasets.vision import VisionDataset
 from torchvision.tv_tensors import BoundingBoxes
-from torchvision.transforms import v2
+from torchvision.transforms import v2, functional 
 import torchvision.tv_tensors
 
 
@@ -72,6 +72,7 @@ class NapLab(VisionDataset):
 
         org_image = Image.open(self.images[index]).convert("L")
         image = torchvision.tv_tensors.Image(org_image)
+        image = functional.equalize(image)
         
         labels = []
         bounding_boxes = []
