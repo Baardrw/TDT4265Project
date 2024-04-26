@@ -108,6 +108,10 @@ class LitModel(pl.LightningModule):
         else:
             # TODO:
             NotImplementedError("No support for training from scratch yet.")
+            
+        if config.loss_function == "focal":
+            from torchvision.ops import sigmoid_focal_loss
+            self.class_weights = 
                     
        
         # self.model.box_detections_per_img = 53
