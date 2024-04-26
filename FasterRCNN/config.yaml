@@ -1,7 +1,7 @@
-max_lr: 0.01
+max_lr: 0.005
 weight_decay: 0.0005
-momentum: 0.9
-max_epochs: 50
+momentum: 0.0
+max_epochs: 200
 batch_size: 4
 
 use_pretrained_weights: true
@@ -11,15 +11,15 @@ image_h: 128
 image_w: 256
 
 test_model: false
-checkpoint_path: checkpoints/best_model:epoch=98-val_map_50=0.5458.ckpt
+checkpoint_path: checkpoints/baseline_512x512.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
 devices: auto
-enable_progress_bar: True
+enable_progress_bar: true
 
 wandb_project: fine_tune
-wandb_experiment_name: fine_tuned_on_512x512
+wandb_experiment_name: correct_norm
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 

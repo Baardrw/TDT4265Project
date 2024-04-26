@@ -55,6 +55,8 @@ class NapLab(VisionDataset):
         if split == 'train':
             self.images = self.images[:num_train]
             self.targets = self.targets[:num_train]
+        elif split == 'all':
+            pass
         else:
             self.images = self.images[num_train:]
             self.targets = self.targets[num_train:]
@@ -146,6 +148,20 @@ class NapLab(VisionDataset):
 if __name__ == '__main__':
     import torchvision
 
-    dataset = NapLab(root='/datasets/tdt4265/ad/NAPLab-LiDAR', split='train')
-    print(dataset[0])
+    dataset = NapLab(root='/datasets/tdt4265/ad/NAPLab-LiDAR', split='all')
+
+    mean = 0
+    std = 0
     
+    for image in dataset:
+        numpy_image = image[0].numpy().transpose(1, 2, 0)
+        mean += np.mean(numpy_image.flatten())
+        std += np.std(numpy_image.flatten())
+    
+    mean /= len(dataset)
+    mean /= 255
+    
+    std /= len(dataset)
+    std /= 255
+    
+    print(mean, std)
