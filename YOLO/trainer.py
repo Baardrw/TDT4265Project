@@ -77,16 +77,16 @@ class CustomTrainer(DetectionTrainer):
 if __name__ == "__main__":
     
     model = YOLO('yolov8s')
-    dataset = '/Users/ianaksum/Documents/repos/TDT4265Project/YOLO/data/cityscapes_yolo/data.yaml'
+    dataset = '/work/ianma/cityscapes_yolo/data.yaml'
     batch_size = 16
-    project = '/Users/ianaksum/Documents/repos/TDT4265Project/YOLO/project'
+    project = 'cityscapes_project'
     experiment = 'cityscapes'
     results=model.train(data = dataset,
                         epochs = 10,
                         batch = batch_size,
                         project = project,
                         name = experiment,
-                        device = 'cpu',
+                        device = 0,
                         imgsz = 640,
                         patience = 5, 
                         verbose = True,
