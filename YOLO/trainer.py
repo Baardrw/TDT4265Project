@@ -1,14 +1,6 @@
-
 import torch
-from torch import nn
-from torchvision.models import resnet50, ResNet50_Weights
-from torchmetrics import Accuracy
-
-from pathlib import Path
 from ultralytics.models import YOLO
 from ultralytics.models.yolo.detect import DetectionTrainer
-from datamodule import CityscapesDataModule
-
 
 torch.set_float32_matmul_precision('medium')
 # config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
@@ -63,33 +55,40 @@ torch.set_float32_matmul_precision('medium')
 #             "test/acc": acc,
 #         },on_epoch=True, on_step=False, prog_bar=True, sync_dist=True)
 
-class CustomTrainer(DetectionTrainer):
-    def __init__(self, dm):
-        self.datamodule = dm
-        self.args = get_cfg('yolo.yaml', overrides)
-
-    
-    def get_dataloader(self):
-        return self.datamodule
-
+# class CustomTrainer(DetectionTrainer):
 
 
 if __name__ == "__main__":
     
-    model = YOLO('yolov8s')
-    dataset = '/work/ianma/cityscapes_yolo/data.yaml'
-    batch_size = 16
+    model = YOLO('yolov8s.yaml')
+    
+    # Datasets
+    cityscapes = '/work/ianma/cityscapes_yolo/data.yaml'
+    naplab = '/work/datasets/tdt4265/ad/NAPLab-LiDAR/data.txt'
+    # Project
     project = 'cityscapes_project'
     experiment = 'cityscapes'
-    results=model.train(data = dataset,
-                        epochs = 10,
-                        batch = batch_size,
-                        project = project,
-                        name = experiment,
-                        device = 0,
-                        imgsz = 640,
-                        patience = 5, 
-                        verbose = True,
-                        val = False,
-                            )
+
+
+    model.train(data = cityscapes,
+                pretrained=False,
+                epochs = 10,
+                batch = 16,
+                device = 0,
+                imgsz = 640,
+                patience = 5, 
+                verbose = True,
+                val = False,
+                time = 12,
+                )
+
     
+    model.train(data = naplab,
+                epochs = 10,
+                batch = 16,
+                device = 0,
+                imgsz = 640,
+                patience = 5, 
+                verbose = True,
+                val = True,
+                )

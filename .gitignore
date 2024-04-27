@@ -4,7 +4,8 @@ data
 venv
 ims
 wandb
-YOLO/cityscapes_yolo
+cityscapes_project
 .DS_Store
 YOLO/project/
 YOLO/runs/
+runs/
