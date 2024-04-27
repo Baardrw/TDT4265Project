@@ -12,7 +12,7 @@ from datamodule import CityscapesDataModule
 
 
 torch.set_float32_matmul_precision('medium')
-config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
+# config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 
 # class LitModel(pl.LightningModule):
 #     def __init__(self, config):
@@ -77,40 +77,6 @@ class CustomTrainer(DetectionTrainer):
 
 if __name__ == "__main__":
     
-    VALID_LABELS = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'background']
-    STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
-
-    dm = CityscapesDataModule(
-        data_root='/work/ianma/cityscapes',
-        valid_labels=VALID_LABELS,
-        label2idx=STR2IDX,
-        image_dimensions=[256, 512]
-    )
+    model = YOLO('yolov8.yaml')
+    model.train()
     
-    
-    if config.checkpoint_path:
-        model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
-        print("Loading weights from checkpoint...")
-    else:
-        model = YOLO()
-
-    # trainer = pl.Trainer(
-    #     devices=config.devices, 
-    #     max_epochs=config.max_epochs, 
-    #     check_val_every_n_epoch=config.check_val_every_n_epoch,
-    #     enable_progress_bar=config.enable_progress_bar,
-    #     precision="bf16-mixed",
-    #     # deterministic=True,
-    #     logger=WandbLogger(project=config.wandb_project, name=config.wandb_experiment_name, config=config),
-    #     callbacks=[
-    #         EarlyStopping(monitor="val/acc", patience=config.early_stopping_patience, mode="max", verbose=True),
-    #         LearningRateMonitor(logging_interval="step"),
-    #         ModelCheckpoint(dirpath=Path(config.checkpoint_folder, config.wandb_project, config.wandb_experiment_name), 
-    #                         filename='best_model:epoch={epoch:02d}-val_acc={val/acc:.4f}',
-    #                         auto_insert_metric_name=False,
-    #                         save_weights_only=True,
-    #                         save_top_k=1),
-    #     ])
-    trainer = CustomTrainer(dm)
-    
-    trainer.train()
