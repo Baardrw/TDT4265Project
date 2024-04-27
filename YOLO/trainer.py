@@ -1,10 +1,9 @@
-import sys
+
 import torch
 from torch import nn
 from torchvision.models import resnet50, ResNet50_Weights
 from torchmetrics import Accuracy
-import munch
-import yaml
+
 from pathlib import Path
 from ultralytics.models import YOLO
 from ultralytics.models.yolo.detect import DetectionTrainer
@@ -77,6 +76,20 @@ class CustomTrainer(DetectionTrainer):
 
 if __name__ == "__main__":
     
-    model = YOLO('yolov8.yaml')
-    model.train()
+    model = YOLO('yolov8s')
+    dataset = '/Users/ianaksum/Documents/repos/TDT4265Project/YOLO/data/cityscapes_yolo/data.yaml'
+    batch_size = 16
+    project = '/Users/ianaksum/Documents/repos/TDT4265Project/YOLO/project'
+    experiment = 'cityscapes'
+    results=model.train(data = dataset,
+                        epochs = 10,
+                        batch = batch_size,
+                        project = project,
+                        name = experiment,
+                        device = 'cpu',
+                        imgsz = 640,
+                        patience = 5, 
+                        verbose = True,
+                        val = False,
+                            )
     
