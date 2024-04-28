@@ -58,13 +58,14 @@ torch.set_float32_matmul_precision('medium')
 # class CustomTrainer(DetectionTrainer):
 
 
+
 if __name__ == "__main__":
     
     model = YOLO('yolov8s.yaml')
     
     # Datasets
     cityscapes = '/work/ianma/cityscapes_yolo/data.yaml'
-    naplab = '/work/datasets/tdt4265/ad/NAPLab-LiDAR/data.txt'
+    naplab = '/work/ianma/TDT4265Project/YOLO/naplab_data.yaml'
     # Project
     project = 'cityscapes_project'
     experiment = 'cityscapes'
@@ -79,7 +80,7 @@ if __name__ == "__main__":
                 patience = 5, 
                 verbose = True,
                 val = False,
-                time = 12,
+                time = 0.1,
                 )
 
     
@@ -91,4 +92,5 @@ if __name__ == "__main__":
                 patience = 5, 
                 verbose = True,
                 val = True,
+                time = 0.1
                 )
