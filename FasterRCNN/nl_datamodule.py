@@ -69,7 +69,6 @@ class NapLabDataModule(pl.LightningDataModule):
         shared_transforms = [
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
-            # v2.Normalize(mean=mean, std=std),
             v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
             v2.Resize(size=(self.resize_dims[0], self.resize_dims[1]), antialias=True),
             v2.ClampBoundingBoxes(),
@@ -83,12 +82,14 @@ class NapLabDataModule(pl.LightningDataModule):
                 
                 v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(), v2.ColorJitter(brightness=0.5)], p=0.3),
                 v2.SanitizeBoundingBoxes(),
-                
+                v2.Normalize(mean=mean, std=std),
             ])
 
         elif split == "val":
             return v2.Compose([
                 *shared_transforms,
+                v2.Normalize(mean=mean, std=std),
+                
                 # ...
             ])
         elif split == "test":
