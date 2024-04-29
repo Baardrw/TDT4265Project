@@ -23,7 +23,9 @@ from pathlib import Path
 
 from datasets.nl_datamodule import NapLabDataModule
 from datasets.cs_datamodule import CityscapesDataModule
-from models.FasterRCNN import init_faster_rcnn
+# from custom_models.FasterRCNN import init_faster_rcnn
+
+
 
 
 torch.set_float32_matmul_precision('medium')
@@ -54,6 +56,11 @@ class LitModel(pl.LightningModule):
         
         if config.model == 'faster_rcnn':
             init_faster_rcnn(config, self)
+        if config.model == 'yolo':
+            print('loading yolo model')
+            # model = torch.hub.load('ultralytics/yolov5', 'yolov5s') 
+            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5m', force_reload=True) 
+
         
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
             box_format="xyxy",
@@ -176,7 +183,7 @@ class LitModel(pl.LightningModule):
 def prog_res():
     """Only for fine tuning on the naplab dataset the aim is to  s.t. it doesnt overfit instantly"""
     sizes = [16, 32, 64, 128, 256, 512]
-    checkpoint_folder = f"/work/baardrw/checkpoints/nap/{config.wandb_project}/{config.wandb_experiment_name}/"
+    checkpoint_folder = f"/work/ianma/checkpoints/nap/{config.wandb_project}/{config.wandb_experiment_name}/"
     
     
     for i, size in enumerate(sizes):
@@ -252,22 +259,22 @@ if __name__ == "__main__":
             image_dimensions=[config.image_h, config.image_w],
         )
     
-    if config.checkpoint_path:
-        model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
-        print("Loading weights from checkpoint...")
+    # if config.checkpoint_path:
+    #     model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
+    #     print("Loading weights from checkpoint...")
         
-        # Freeze backbone
+    #     # Freeze backbone
             
-        for param in model.model.backbone.parameters():
-            print(param.requires_grad)
+    #     for param in model.model.backbone.parameters():
+    #         print(param.requires_grad)
         
-        if not config.pre_train: # TODO: ?  
-            # model.model.box_detections_per_img = 53            
-            pass        
+    #     if not config.pre_train: # TODO: ?  
+    #         # model.model.box_detections_per_img = 53            
+    #         pass        
         
 
-    else:
-        model = LitModel(config)
+    # else:
+    #     model = LitModel(config)
         
         
     trainer = pl.Trainer(
@@ -287,8 +294,8 @@ if __name__ == "__main__":
                             save_weights_only=True,
                             save_top_k=1),
         ])
-    
-    
+    model = LitModel(config)
+
     if not config.test_model:
         trainer.fit(model, datamodule=dm)
     
