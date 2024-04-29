@@ -10,9 +10,12 @@ import torchmetrics
 from torch import nn, mul, add
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator, RPNHead
+from torchvision.models.detection import roi_heads
+
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.transforms import v2
 from torchvision import utils, ops
+import torch.nn.functional as F
 
 import munch
 import yaml
@@ -41,6 +44,9 @@ if not config.pre_train:
     
 STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
+FOCAL_LOSS_WEIGHTS = [1.0, 191.6178861788618, 44.30263157894737, 22.816069699903196, 40.08333333333333, 2.770867622854456, 12.496818663838813, 2.162095220621961]
+FOCAL_LOSS_WEIGHTS = torch.tensor(FOCAL_LOSS_WEIGHTS)
+GAMMA = 2.0
 
 def set_model_transform(model):
     coco_mean = [0.485, 0.456, 0.406]
@@ -58,19 +64,76 @@ def set_model_transform(model):
                                         )
     
     model.transform = transform
+    
+def faster_rcnn_focal_loss(class_logits, box_regression, labels, regression_targets):
+    """
+    Computes the loss for Faster R-CNN.
+    
+    Modified from the pytorch fastrcnn loss implementation to use focal loss instead of cross entropy.
+
+    Args:
+        class_logits (Tensor)
+        box_regression (Tensor)
+        labels (list[BoxList])
+        regression_targets (Tensor)
+
+    Returns:
+        classification_loss (Tensor)
+        box_loss (Tensor)
+    """
+
+    labels = torch.cat(labels, dim=0)
+    regression_targets = torch.cat(regression_targets, dim=0)
+
+    classification_loss = F.cross_entropy(class_logits, labels)
+    
+    pt = torch.exp(-classification_loss)
+    
+    # Calculate focal weights for each label
+    flw = FOCAL_LOSS_WEIGHTS.to(labels.device)
+    focal_weights = torch.gather(flw, 0, labels)
+
+    # Compute focal loss for each sample in the batch
+    focal_loss = focal_weights * (1 - pt) ** GAMMA * classification_loss
+
+    # Calculate the mean focal loss over the batch
+    loss = focal_loss.mean()
+        
+    print(f"Classification loss: {classification_loss}, Focal loss: {loss}")
+
+    # get indices that correspond to the regression targets for
+    # the corresponding ground truth labels, to be used with
+    # advanced indexing
+    sampled_pos_inds_subset = torch.where(labels > 0)[0]
+    labels_pos = labels[sampled_pos_inds_subset]
+    N, num_classes = class_logits.shape
+    box_regression = box_regression.reshape(N, box_regression.size(-1) // 4, 4)
+
+    box_loss = F.smooth_l1_loss(
+        box_regression[sampled_pos_inds_subset, labels_pos],
+        regression_targets[sampled_pos_inds_subset],
+        beta=1 / 9,
+        reduction="sum",
+    )
+    box_loss = box_loss / labels.numel()
+
+    return classification_loss, box_loss
+
+    
 
 class LitModel(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.config = config
         
-        # Setting up the valid labels
-        
+        # Setting up focal loss, super hacky but works
+        if config.use_focal_loss:
+            roi_heads.fastrcnn_loss = faster_rcnn_focal_loss
+    
         self.num_classes = len(VALID_LABELS)
         
         # Setting up model
-        
-        
+
         if config.use_pretrained_weights:
             self.model = fasterrcnn_resnet50_fpn(weights=None)
             
@@ -92,7 +155,11 @@ class LitModel(pl.LightningModule):
             
             in_features = self.model.roi_heads.box_predictor.cls_score.in_features
             self.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=self.num_classes)
-                    
+            
+           
+            
+            # TODO: figure out appropriate anchor generator
+            
             # Create custom anchor generator
             # anchor_generator = AnchorGenerator(
             #     sizes=((16,), (32,), (64,), (128,), (256,)),
@@ -233,10 +300,14 @@ class LitModel(pl.LightningModule):
 def prog_res():
     """Only for fine tuning on the naplab dataset the aim is to  s.t. it doesnt overfit instantly"""
     sizes = [16, 32, 64, 128, 256, 512]
-    checkpoint_folder = config.checkpoint_folder
+    checkpoint_folder = f"/work/baardrw/checkpoints/nap/{config.wandb_project}/{config.wandb_experiment_name}/"
     
     
     for i, size in enumerate(sizes):
+        
+        if i < config.progressive_resizing_start_index:
+            continue
+        
         dm = NapLabDataModule(
                 batch_size=config.batch_size,
                 num_workers=config.num_workers,
@@ -247,7 +318,7 @@ def prog_res():
         
 
         if i > 0:
-            model = LitModel.load_from_checkpoint(checkpoint_path=checkpoint_folder + f"prog_res{i - 1}", config=config)
+            model = LitModel.load_from_checkpoint(checkpoint_path=checkpoint_folder + f"prog_res{i - 1}.ckpt", config=config)
             print("Loading weights from checkpoint...") 
 
         else:
@@ -271,6 +342,7 @@ def prog_res():
                             save_weights_only=True,
                             save_top_k=1),
         ])
+        
         
         trainer.fit(model, datamodule=dm)
         
@@ -348,6 +420,8 @@ if __name__ == "__main__":
                             save_weights_only=True,
                             save_top_k=1),
         ])
+    
+    
     if not config.test_model:
         trainer.fit(model, datamodule=dm)
     
