@@ -14,7 +14,6 @@ from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.transforms import v2
 from torchvision import utils, ops
 
-
 import munch
 import yaml
 from pathlib import Path
@@ -93,8 +92,7 @@ class LitModel(pl.LightningModule):
             
             in_features = self.model.roi_heads.box_predictor.cls_score.in_features
             self.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=self.num_classes)
-            
-            
+                    
             # Create custom anchor generator
             # anchor_generator = AnchorGenerator(
             #     sizes=((16,), (32,), (64,), (128,), (256,)),
@@ -107,12 +105,7 @@ class LitModel(pl.LightningModule):
             
         else:
             # TODO:
-            NotImplementedError("No support for training from scratch yet.")
-            
-        if config.loss_function == "focal":
-            from torchvision.ops import sigmoid_focal_loss
-            self.class_weights = 
-                    
+            NotImplementedError("No support for training from scratch yet.")         
        
         # self.model.box_detections_per_img = 53
         # Setting up the metric
@@ -152,11 +145,12 @@ class LitModel(pl.LightningModule):
         images, targets = batch
         
         self.model.train()
-        loss_dict = self.model(images, targets)
+        loss_dict = self.model(images, targets)        
         losses = sum(loss for loss in loss_dict.values())
         
         self.model.eval()
         outputs = self.model(images)
+    
         self.val_map.update(outputs, targets)
         map = self.val_map.compute()
         
@@ -235,12 +229,62 @@ class LitModel(pl.LightningModule):
         
         exit()
             
+
+def prog_res():
+    """Only for fine tuning on the naplab dataset the aim is to  s.t. it doesnt overfit instantly"""
+    sizes = [16, 32, 64, 128, 256, 512]
+    checkpoint_folder = config.checkpoint_folder
+    
+    
+    for i, size in enumerate(sizes):
+        dm = NapLabDataModule(
+                batch_size=config.batch_size,
+                num_workers=config.num_workers,
+                data_root=config.data_root,
+                image_dimensions=[config.image_h, config.image_w],
+                resize_dims=[size, size]
+            )
+        
+
+        if i > 0:
+            model = LitModel.load_from_checkpoint(checkpoint_path=checkpoint_folder + f"prog_res{i - 1}", config=config)
+            print("Loading weights from checkpoint...") 
+
+        else:
+            model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
             
+            
+        trainer = pl.Trainer(
+        devices=config.devices, 
+        max_epochs=config.max_epochs, 
+        check_val_every_n_epoch=config.check_val_every_n_epoch,
+        enable_progress_bar=config.enable_progress_bar,
+        precision="bf16-mixed",
+        # deterministic=True,
+        logger=WandbLogger(project=config.wandb_project, name=config.wandb_experiment_name, config=config),
+        callbacks=[
+            EarlyStopping(monitor="val/map", patience=config.early_stopping_patience, mode="max", verbose=True),
+            LearningRateMonitor(logging_interval="step"),
+            ModelCheckpoint(dirpath=Path(config.checkpoint_folder, config.wandb_project, config.wandb_experiment_name), 
+                            filename=f'prog_res{i}',
+                            auto_insert_metric_name=False,
+                            save_weights_only=True,
+                            save_top_k=1),
+        ])
+        
+        trainer.fit(model, datamodule=dm)
+        
            
 
 if __name__ == "__main__":
     
     pl.seed_everything(42)
+    
+    
+    if config.progressive_resizing:
+        print("Progressive resize fine tuning")
+        prog_res()
+        exit()
     
     if config.pre_train:
         dm = CityscapesDataModule(
