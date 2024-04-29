@@ -99,7 +99,6 @@ def faster_rcnn_focal_loss(class_logits, box_regression, labels, regression_targ
     # Calculate the mean focal loss over the batch
     loss = focal_loss.mean()
         
-    print(f"Classification loss: {classification_loss}, Focal loss: {loss}")
 
     # get indices that correspond to the regression targets for
     # the corresponding ground truth labels, to be used with
@@ -159,22 +158,20 @@ class LitModel(pl.LightningModule):
            
             
             # TODO: figure out appropriate anchor generator
-            
-            # Create custom anchor generator
+            # # Create custom anchor generator
             # anchor_generator = AnchorGenerator(
-            #     sizes=((16,), (32,), (64,), (128,), (256,)),
-            #     aspect_ratios=tuple([(0.25, 0.5, 1.0, 1.5 ,2.0) for _ in range(5)]))
+            #     sizes=((32,), (64,), (128,), (256,), (512,)),
+            #     aspect_ratios=tuple([(0.05, 0.1, 0.25, 0.5 ,1.0, 2.0) for _ in range(5)]))
             
             # self.model.rpn.anchor_generator = anchor_generator
             
             # self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
-            
-            
+
         else:
             # TODO:
             NotImplementedError("No support for training from scratch yet.")         
        
-        # self.model.box_detections_per_img = 53
+        # self.model.box_detections_per_img = 256 # TODO: Perhaps not so good maybe is good doe, idkk
         # Setting up the metric
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
             box_format="xyxy",
@@ -381,22 +378,22 @@ if __name__ == "__main__":
         print("Loading weights from checkpoint...")
         
     
-        for param in model.model.backbone.parameters():
-            print(param.requires_grad)
+        # for param in model.model.backbone.parameters():
+        #     print(param.requires_grad)
         
-        print("\n\n")
-        for param in model.model.rpn.parameters():
-            print(param.requires_grad)
-        print("\n\n")
+        # print("\n\n")
+        # for param in model.model.rpn.parameters():
+        #     print(param.requires_grad)
+        # print("\n\n")
             
-        for param in model.model.roi_heads.parameters():
-            print(param.requires_grad)
+        # for param in model.model.roi_heads.parameters():
+        #     print(param.requires_grad)
         
-        if not config.pre_train:
-            # model.model.box_detections_per_img = 53            
-            pass        
+        # if not config.pre_train:
+        #     # model.model.box_detections_per_img = 53            
+        #     pass        
         
-        print("HWLOOOOO")
+        # print("HWLOOOOO")
             
 
     else:
