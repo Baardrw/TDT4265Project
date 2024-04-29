@@ -27,7 +27,7 @@ wandb_experiment_name: fine_tune_from_gray_scale_coco
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
 train_split_ratio: 0.8
-pre_train: true
+pre_train: false
 data_root: /datasets/tdt4265/ad/NAPLab-LiDAR/
 mode: fine
 checkpoint_folder: ./checkpoints/
