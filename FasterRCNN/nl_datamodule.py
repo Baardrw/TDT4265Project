@@ -63,8 +63,8 @@ class NapLabDataModule(pl.LightningDataModule):
 
 
     def get_transforms(self, split, label=False):
-        mean = [0.4701497724237717] # taken from data analysis of naplab dataset
-        std = [0.2970671789647479]
+        mean = [0.5085652989351241] # taken from data analysis of naplab dataset
+        std = [0.2970477123406435]
 
         shared_transforms = [
             v2.ToImage(),
@@ -81,7 +81,7 @@ class NapLabDataModule(pl.LightningDataModule):
             return v2.Compose([
                 *shared_transforms,
                 
-                v2.RandomApply([v2.RandomRotation(degrees=10), v2.RandomHorizontalFlip(), v2.ColorJitter(brightness=0.5)], p=0.3),
+                v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(), v2.ColorJitter(brightness=0.5)], p=0.3),
                 v2.SanitizeBoundingBoxes(),
                 
             ])

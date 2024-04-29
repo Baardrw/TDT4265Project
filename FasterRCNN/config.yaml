@@ -3,23 +3,27 @@ weight_decay: 0.0005
 momentum: 0.9
 max_epochs: 100
 batch_size: 12
+use_focal_loss: true
+
 
 use_pretrained_weights: true
 pretrained_weights_path: /work/baardrw/fasterrcnn_resnet50_fpn_coco_grayscale.pth
 
 image_h: 512
-image_w: 1024
+image_w: 2048
+progressive_resizing: false
+progressive_resizing_start_index: 1
 
 test_model: false
-checkpoint_path: #checkpoints/FasterRCNN/FasterRCNN_CityScapes_GrayScale_Baseline_BS_12/best_model:epoch=98-val_map_50=0.5458.ckpt
+checkpoint_path: #checkpoints/baseline_512x512.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
 devices: auto
-enable_progress_bar: True
+enable_progress_bar: true
 
 wandb_project: FasterRCNN
-wandb_experiment_name: Images_scaled_to_512_512
+wandb_experiment_name: focal_loss_base_line
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
