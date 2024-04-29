@@ -161,13 +161,13 @@ class LitModel(pl.LightningModule):
             # TODO: figure out appropriate anchor generator
             
             # Create custom anchor generator
-            # anchor_generator = AnchorGenerator(
-            #     sizes=((16,), (32,), (64,), (128,), (256,)),
-            #     aspect_ratios=tuple([(0.25, 0.5, 1.0, 1.5 ,2.0) for _ in range(5)]))
+            anchor_generator = AnchorGenerator(
+                sizes=((32,), (64,), (128,), (256,), (512,)),
+                aspect_ratios=tuple([(0.2, 0.35, 0.5, 1.0, 2.0) for _ in range(5)]))
             
-            # self.model.rpn.anchor_generator = anchor_generator
+            self.model.rpn.anchor_generator = anchor_generator
             
-            # self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
+            self.model.rpn.head = RPNHead(256, anchor_generator.num_anchors_per_location()[0])
             
             
         else:
