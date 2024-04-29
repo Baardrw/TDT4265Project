@@ -6,7 +6,7 @@ from torchvision.transforms import v2
 import torch
 
 
-from naplab import NapLab
+from datasets.naplab import NapLab
 
 
 class NapLabDataModule(pl.LightningDataModule):

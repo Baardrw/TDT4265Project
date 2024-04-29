@@ -7,7 +7,7 @@ import torch
 from torchvision.tv_tensors import BoundingBoxes
 
 
-from cityscapes import Cityscapes
+from datasets.cityscapes import Cityscapes
 
 
 class CityscapesDataModule(pl.LightningDataModule):

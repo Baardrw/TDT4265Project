@@ -78,7 +78,6 @@ def faster_rcnn_focal_loss(class_logits, box_regression, labels, regression_targ
     # Calculate the mean focal loss over the batch
     loss = focal_loss.mean()
         
-    print(f"Classification loss: {classification_loss}, Focal loss: {loss}")
 
     # get indices that correspond to the regression targets for
     # the corresponding ground truth labels, to be used with
@@ -96,14 +95,12 @@ def faster_rcnn_focal_loss(class_logits, box_regression, labels, regression_targ
     )
     box_loss = box_loss / labels.numel()
 
-    return classification_loss, box_loss
+    return loss, box_loss
 
     
 def init_faster_rcnn(config, litmodel):
     if config.use_focal_loss:
         roi_heads.fastrcnn_loss = faster_rcnn_focal_loss
-    
-        litmodel.num_classes = len(VALID_LABELS)
         
         # Setting up model
 

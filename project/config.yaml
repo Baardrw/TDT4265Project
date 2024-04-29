@@ -1,7 +1,9 @@
-max_lr: 0.01
+model: faster_rcnn
+
+max_lr: 0.005
 weight_decay: 0.0005
 momentum: 0.9
-max_epochs: 100
+max_epochs: 25
 batch_size: 2
 use_focal_loss: true
 
@@ -22,13 +24,12 @@ devices: auto
 enable_progress_bar: true
 
 wandb_project: fine_tune
-wandb_experiment_name: just_focal_loss_frozen_backbone
+wandb_experiment_name: progressive_resize_w_focal_loss
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
-# /datasets/tdt4265/ad/NAPLab-LiDAR/
 
 train_split_ratio: 0.8
 pre_train: false
-data_root: /datasets/tdt4265/ad/NAPLab-LiDAR
+data_root: /datasets/tdt4265/ad/NAPLab-LiDAR/
 mode: fine
 checkpoint_folder: /work/baardrw/checkpoints/

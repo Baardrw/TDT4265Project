@@ -23,7 +23,7 @@ from pathlib import Path
 
 from datasets.nl_datamodule import NapLabDataModule
 from datasets.cs_datamodule import CityscapesDataModule
-from models.FasterRCNN import faster_rcnn_focal_loss, set_model_transform, init_faster_rcnn
+from models.FasterRCNN import init_faster_rcnn
 
 
 torch.set_float32_matmul_precision('medium')
@@ -50,9 +50,7 @@ class LitModel(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        
-        # Setting up focal loss, super hacky but works
-        
+        self.num_classes = len(VALID_LABELS)        
         
         if config.model == 'faster_rcnn':
             init_faster_rcnn(config, self)
@@ -259,8 +257,6 @@ if __name__ == "__main__":
         print("Loading weights from checkpoint...")
         
         # Freeze backbone
-        for param in model.model.backbone.parameters():
-            param.requires_grad = False
             
         for param in model.model.backbone.parameters():
             print(param.requires_grad)
