@@ -47,7 +47,7 @@ class NapLabDataModule(pl.LightningDataModule):
         return tuple(zip(*batch))
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False,  collate_fn=self.collate_fn)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=True,  collate_fn=self.collate_fn)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, shuffle=False, collate_fn=self.collate_fn)
@@ -69,8 +69,8 @@ class NapLabDataModule(pl.LightningDataModule):
         shared_transforms = [
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
-            v2.Normalize(mean=mean, std=std),
-            v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
+            # v2.Normalize(mean=mean, std=std),
+            v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1]*2)),
             v2.Resize(size=(self.resize_dims[0], self.resize_dims[1]), antialias=True),
             v2.ClampBoundingBoxes(),
             v2.SanitizeBoundingBoxes(),
