@@ -176,7 +176,7 @@ class LitModel(pl.LightningModule):
 def prog_res():
     """Only for fine tuning on the naplab dataset the aim is to  s.t. it doesnt overfit instantly"""
     sizes = [16, 32, 64, 128, 256, 512]
-    checkpoint_folder = f"/work/baardrw/checkpoints/nap/{config.wandb_project}/{config.wandb_experiment_name}/"
+    checkpoint_folder = f"/work/baardrw/checkpoints/{config.wandb_project}/{config.wandb_experiment_name}/"
     
     
     for i, size in enumerate(sizes):
@@ -199,7 +199,8 @@ def prog_res():
 
         else:
             model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
-            
+        
+        config.wandb_experiment_name = f"{config.wandb_experiment_name}@{size}"
             
         trainer = pl.Trainer(
         devices=config.devices, 

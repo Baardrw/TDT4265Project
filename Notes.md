@@ -13,3 +13,9 @@ training on a single 8-GPU machine under this setting.
 
 
 Maybe add more transforms to fit better to naplab dataset
+
+
+## Fine tuning
+
+128x512 is good size
+regular cross entropy loss is best at least in the start, not sure about later on, no progressive resizing seems promising, although prog res might be good 
