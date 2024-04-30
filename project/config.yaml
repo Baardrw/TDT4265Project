@@ -24,7 +24,7 @@ devices: auto
 enable_progress_bar: true
 
 wandb_project: fine_tune
-wandb_experiment_name: no_focal_no_progres
+wandb_experiment_name: no_focal_no_prog_resiz
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
