@@ -1,24 +1,24 @@
-model: faster_rcnn
+model: retina
 
-max_lr: 0.005
-weight_decay: 0.0005
+max_lr: 0.01
+weight_decay: 0.001
 momentum: 0.9
 max_epochs: 100
-batch_size: 2
+batch_size: 12
 use_focal_loss: false
 
-staged_training: true
+staged_training: false
 head_max_lr: 0.005
 head_max_epochs: 20
 all_max_lr: 0.002
 all_max_epochs: 25
 
 
-use_pretrained_weights: true
+use_pretrained_weights: false
 pretrained_weights_path: /work/baardrw/fasterrcnn_resnet50_fpn_coco_grayscale.pth
 
-image_h: 128
-image_w: 512
+image_h: 256
+image_w: 1024
 progressive_resizing: false
 progressive_resizing_start_index: 1
 
@@ -26,20 +26,20 @@ progressive_resizing_start_index: 1
 # checkpoints/baseline_512x512.ckpt
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
 test_model: false
-checkpoint_path: checkpoints/baseline_512x512.ckpt
+checkpoint_path: #checkpoints/baseline_512x512.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
 devices: auto
 enable_progress_bar: true
 
-wandb_project: fine_tune
-wandb_experiment_name: no_focal_staged_training
+wandb_project: Retina
+wandb_experiment_name: base
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
 train_split_ratio: 0.8
-pre_train: false
-data_root: /datasets/tdt4265/ad/NAPLab-LiDAR/
+pre_train: true
+data_root:  /work/ianma/cityscapes
 mode: fine
-checkpoint_folder: /work/baardrw/checkpoints/
+checkpoint_folder: /work/ianma/checkpoints/
