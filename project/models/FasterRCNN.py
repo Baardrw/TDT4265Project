@@ -27,7 +27,7 @@ FOCAL_LOSS_WEIGHTS = [1.0, 191.6178861788618, 44.30263157894737, 22.816069699903
 FOCAL_LOSS_WEIGHTS = torch.tensor(FOCAL_LOSS_WEIGHTS)
 GAMMA = 2.0
 
-def set_model_transform(model):
+def set_model_transform(model, litmodel):
     coco_mean = [0.485, 0.456, 0.406]
     coco_std = [0.229, 0.224, 0.225]
     
@@ -35,6 +35,8 @@ def set_model_transform(model):
     coco_std_grayscale = [math.sqrt(0.2989**2 * coco_std[0]**2 + 0.5870**2 * coco_std[1]**2 + 0.1140**2 * coco_std[2]**2)]     
     print(coco_mean_grayscale, coco_std_grayscale)
     
+    litmodel.coco_mean_grayscale = coco_mean_grayscale
+    litmodel.coco_std_grayscale = coco_std_grayscale
     transform = GeneralizedRCNNTransform(
                                         min_size=800,
                                         max_size=1333,
@@ -60,7 +62,8 @@ def faster_rcnn_focal_loss(class_logits, box_regression, labels, regression_targ
         classification_loss (Tensor)
         box_loss (Tensor)
     """
-
+    
+    assert False, "This function is not used, use the loss implementation in the model instead"
     labels = torch.cat(labels, dim=0)
     regression_targets = torch.cat(regression_targets, dim=0)
 
@@ -121,7 +124,7 @@ def init_faster_rcnn(config, litmodel):
         litmodel.model.load_state_dict(state_dict)
         
         # Changing the transforms to grayscale
-        set_model_transform(litmodel.model)
+        set_model_transform(litmodel.model, litmodel)
         
         in_features = litmodel.model.roi_heads.box_predictor.cls_score.in_features
         litmodel.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=litmodel.num_classes)

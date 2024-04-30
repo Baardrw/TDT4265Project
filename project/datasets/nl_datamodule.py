@@ -6,7 +6,10 @@ from torchvision.transforms import v2
 import torch
 
 
-from datasets.naplab import NapLab
+try:
+    from datasets.naplab import NapLab # to allow running the script from the project root
+except ImportError:
+    from naplab import NapLab
 
 
 class NapLabDataModule(pl.LightningDataModule):
@@ -79,8 +82,7 @@ class NapLabDataModule(pl.LightningDataModule):
 
             return v2.Compose([
                 *shared_transforms,
-                
-                v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(), v2.ColorJitter(brightness=0.5)], p=0.3),
+                v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(),v2.RandomPhotometricDistort(), v2.RandomVerticalFlip(p=1.0), v2.RandomHorizontalFlip(p=1.0)], p=0.5),
                 v2.SanitizeBoundingBoxes(),
                 v2.Normalize(mean=mean, std=std),
                 
@@ -97,7 +99,8 @@ class NapLabDataModule(pl.LightningDataModule):
         elif split == "test":
             return v2.Compose([
                 *shared_transforms,
-                # ...
+                v2.Normalize(mean=mean, std=std),
+                
             ])
 
 
@@ -128,9 +131,7 @@ if __name__ == '__main__':
         print(len(all_bbs))
         labels = batch[1][i]['labels']
         
-        # for j in range(len(all_bbs)):
-        #     print(labels[j])
-        #     print(all_bbs[j])
+     
             
 
         image_tensor = v2.functional.to_dtype(batch[0][i], torch.float32)

@@ -99,7 +99,7 @@ class NapLab(VisionDataset):
             'labels': labels,
             'boxes': BoundingBoxes(bounding_boxes, format='XYXY', canvas_size=[self.image_height, self.image_width])
         }
-   
+       
         
         if self.transforms is not None:
             # target is a list of tuple[labels, bounding_boxes]

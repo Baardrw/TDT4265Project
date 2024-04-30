@@ -62,8 +62,21 @@ class LitModel(pl.LightningModule):
     
     
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.config.max_lr, momentum=self.config.momentum, weight_decay=self.config.weight_decay)
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.config.max_epochs)
+        max_lr = self.config.max_lr
+        momentum = self.config.momentum
+        weight_decay = self.config.weight_decay
+        max_epochs = self.config.max_epochs
+        
+        if config.staged_training:
+            if self.stage == 0:
+                max_lr = self.config.head_max_lr
+                max_epochs = self.config.head_max_epochs
+            else:
+                max_lr = self.config.all_max_lr
+                max_epochs = self.config.all_max_epochs
+        
+        optimizer = torch.optim.SGD(self.parameters(), lr=max_lr, momentum=momentum, weight_decay=weight_decay)
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max_epochs)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"} ]
 
     def forward(self, image):
@@ -76,8 +89,11 @@ class LitModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         
         images, targets = batch
+        
+        
         loss_dict = self.model(images, targets)
-        losses = sum(loss for loss in loss_dict.values())
+        losses = sum(loss for loss in loss_dict.values()) 
+        
         self.log_dict({
             "train/loss": losses,
         },on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))
@@ -112,7 +128,7 @@ class LitModel(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
         images = [i.unsqueeze(0) for i in  batch[0] ]
-        
+            
         self.model.eval()
         outputs = self.model(images) 
         
@@ -138,19 +154,18 @@ class LitModel(pl.LightningModule):
         mean = [0.3090844516698354]
         std = [0.17752945677448584]
         
-        mean = [0.4701497724237717] # taken from data analysis of naplab dataset
-        std = [0.2970671789647479]
+        mean = [0.5085652989351241] # taken from data analysis of naplab dataset
+        std = [0.2970477123406435]
         
         for i in range(len(images)):
             output = outputs[i]
             
-            print(output['boxes'].shape)
+            print(output['labels'])
             
-            keep = ops.nms(output['boxes'], output['scores'], iou_threshold=0.3)
+            keep = ops.nms(output['boxes'], output['scores'], iou_threshold=0.2)
             output['boxes'] = torch.index_select(output['boxes'], 0, keep)
             output['labels'] = torch.index_select(output['labels'], 0, keep)
             
-            print(output['boxes'].shape)
             
             image_tensor = v2.functional.to_dtype(images[i], torch.float32)
             de_normed = add(mul(image_tensor, self.coco_std_grayscale[0]), self.coco_mean_grayscale[0])
@@ -160,7 +175,7 @@ class LitModel(pl.LightningModule):
             # print(output['boxes'])
             
             labels = [VALID_LABELS[label_id] for label_id in output['labels']]
-            img = utils.draw_bounding_boxes(image_uint8, output['boxes'], labels=labels, width=1) # TODO: labels
+            img = utils.draw_bounding_boxes(image_uint8, output['boxes'], labels=labels, width=3) # TODO: labels
 
             img = img.cpu()
             import matplotlib.pyplot as plt
@@ -171,17 +186,95 @@ class LitModel(pl.LightningModule):
                 plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0))            
         
         exit()
-            
+
+def staged_traing():
+    """Only fine tune the model head, then fine tune the entire model"""
+    
+    dm = NapLabDataModule(
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            data_root=config.data_root,
+            image_dimensions=[config.image_h, config.image_w],
+        )
+    
+    model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
+    model.stage = 0
+   
+    ## Freeze backbone:
+    for param in model.model.backbone.parameters():
+        param.requires_grad = False
+        
+    # Freeze rpn
+    for param in model.model.rpn.parameters():
+        param.requires_grad = False
+    
+    
+    trainer = pl.Trainer(
+        devices=config.devices, 
+        max_epochs=config.head_max_epochs, 
+        check_val_every_n_epoch=config.check_val_every_n_epoch,
+        enable_progress_bar=config.enable_progress_bar,
+        precision="bf16-mixed",
+        # deterministic=True,
+        logger=WandbLogger(project=config.wandb_project, name=config.wandb_experiment_name, config=config),
+        callbacks=[
+            EarlyStopping(monitor="val/map", patience=config.early_stopping_patience, mode="max", verbose=True),
+            LearningRateMonitor(logging_interval="step"),
+            ModelCheckpoint(dirpath=Path(config.checkpoint_folder, config.wandb_project, config.wandb_experiment_name), 
+                            filename='best_model:epoch={epoch:02d}-val_map_50={val/map_50:.4f}',
+                            auto_insert_metric_name=False,
+                            save_weights_only=True,
+                            save_top_k=1),
+        ])
+        
+        
+        
+    trainer.fit(model, datamodule=dm)
+    
+    model.stage = 1
+     ## UnFreeze backbone:
+    for i, param in enumerate(model.model.backbone.parameters()):
+        if i > 22:
+            param.requires_grad = True
+        
+    # UnFreeze rpn
+    for param in model.model.rpn.parameters():
+        param.requires_grad = True
+        
+   
+    trainer = pl.Trainer(
+        devices=config.devices, 
+        max_epochs=config.all_max_epochs, 
+        check_val_every_n_epoch=config.check_val_every_n_epoch,
+        enable_progress_bar=config.enable_progress_bar,
+        precision="bf16-mixed",
+        # deterministic=True,
+        logger=WandbLogger(project=config.wandb_project, name=config.wandb_experiment_name, config=config),
+        callbacks=[
+            EarlyStopping(monitor="val/map", patience=config.early_stopping_patience, mode="max", verbose=True),
+            LearningRateMonitor(logging_interval="step"),
+            ModelCheckpoint(dirpath=Path(config.checkpoint_folder, config.wandb_project, config.wandb_experiment_name), 
+                            filename='best_model:epoch={epoch:02d}-val_map_50={val/map_50:.4f}',
+                            auto_insert_metric_name=False,
+                            save_weights_only=True,
+                            save_top_k=1),
+        ])
+    
+        
+    trainer.fit(model, datamodule=dm)
+    
+    
 
 def prog_res():
     """Only for fine tuning on the naplab dataset the aim is to  s.t. it doesnt overfit instantly"""
     sizes = [16, 32, 64, 128, 256, 512]
-    checkpoint_folder = f"/work/baardrw/checkpoints/{config.wandb_project}/{config.wandb_experiment_name}/"
+    
     
     
     for i, size in enumerate(sizes):
         
         if i < config.progressive_resizing_start_index:
+            print("skipped size", size)
             continue
         
         dm = NapLabDataModule(
@@ -194,20 +287,22 @@ def prog_res():
         
 
         if i > 0:
+            checkpoint_folder = f"/work/baardrw/checkpoints/{config.wandb_project}/{config.wandb_experiment_name}/"
             model = LitModel.load_from_checkpoint(checkpoint_path=checkpoint_folder + f"prog_res{i - 1}.ckpt", config=config)
             print("Loading weights from checkpoint...") 
 
         else:
             model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
         
-        config.wandb_experiment_name = f"{config.wandb_experiment_name}@{size}"
-            
+        
+        config.wandb_experiment_name = f"{config.wandb_experiment_name.split('@')[0]}@{size}"
+        
         trainer = pl.Trainer(
         devices=config.devices, 
         max_epochs=config.max_epochs, 
         check_val_every_n_epoch=config.check_val_every_n_epoch,
         enable_progress_bar=config.enable_progress_bar,
-        precision="bf16-mixed",
+        precision="bf16-NapLabDataModulemixed",
         # deterministic=True,
         logger=WandbLogger(project=config.wandb_project, name=config.wandb_experiment_name, config=config),
         callbacks=[
@@ -233,6 +328,11 @@ if __name__ == "__main__":
     if config.progressive_resizing:
         print("Progressive resize fine tuning")
         prog_res()
+        exit()
+        
+    elif config.staged_training:
+        print("Staged training")
+        staged_traing()
         exit()
     
     if config.pre_train:
@@ -292,5 +392,9 @@ if __name__ == "__main__":
     
     if not config.test_model:
         trainer.fit(model, datamodule=dm)
+    
+    print(model.model.roi_heads.box_predictor)
+    
+    # figure out how many are kept from rpn 
     
     trainer.test(model, datamodule=dm)
