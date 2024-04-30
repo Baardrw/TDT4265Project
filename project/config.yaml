@@ -30,6 +30,6 @@ wandb_experiment_name: yolo_test
 
 train_split_ratio: 0.8
 pre_train: false
-data_root: /datasets/tdt4265/ad/NAPLab-LiDAR/
+data_root: C:\Users\ianak\data\NAPLab-LiDAR
 mode: fine
 checkpoint_folder: /work/ianma/checkpoints/

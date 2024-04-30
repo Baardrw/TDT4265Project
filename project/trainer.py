@@ -27,7 +27,6 @@ from datasets.cs_datamodule import CityscapesDataModule
 
 
 
-
 torch.set_float32_matmul_precision('medium')
 config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 
@@ -59,7 +58,7 @@ class LitModel(pl.LightningModule):
         if config.model == 'yolo':
             print('loading yolo model')
             # model = torch.hub.load('ultralytics/yolov5', 'yolov5s') 
-            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5m', force_reload=True) 
+            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5m') 
 
         
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
@@ -75,8 +74,8 @@ class LitModel(pl.LightningModule):
 
     def forward(self, image):
         """Inference step."""
-        self.model.eval()
-        output = self.model(image)
+        print(image.shape)
+        output = self.model.forward(image)
         
         return output
 
@@ -171,7 +170,7 @@ class LitModel(pl.LightningModule):
 
             img = img.cpu()
             import matplotlib.pyplot as plt
-            
+
             if img.numpy().transpose(1, 2, 0).shape[2] == 1:
                 plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0)[:, :, 0], cmap='gray')
             else:
