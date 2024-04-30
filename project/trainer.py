@@ -24,6 +24,7 @@ from pathlib import Path
 from datasets.nl_datamodule import NapLabDataModule
 from datasets.cs_datamodule import CityscapesDataModule
 from models.FasterRCNN import init_faster_rcnn
+from models.Retina import init_retina
 
 
 torch.set_float32_matmul_precision('medium')
@@ -54,6 +55,8 @@ class LitModel(pl.LightningModule):
         
         if config.model == 'faster_rcnn':
             init_faster_rcnn(config, self)
+        else:
+            init_retina(config, self)
         
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
             box_format="xyxy",
@@ -89,7 +92,6 @@ class LitModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         
         images, targets = batch
-        
         
         loss_dict = self.model(images, targets)
         losses = sum(loss for loss in loss_dict.values()) 
