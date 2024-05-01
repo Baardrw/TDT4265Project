@@ -61,6 +61,7 @@ class LitModel(pl.LightningModule):
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
             box_format="xyxy",
             iou_type="bbox", 
+            max_detection_thresholds=[1, 6, 12],
         )
     
     
@@ -183,9 +184,9 @@ class LitModel(pl.LightningModule):
             import matplotlib.pyplot as plt
             
             if img.numpy().transpose(1, 2, 0).shape[2] == 1:
-                plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0)[:, :, 0], cmap='gray')
+                plt.imsave(f"inferences/tests{i}.png", img.numpy().transpose(1, 2, 0)[:, :, 0], cmap='gray')
             else:
-                plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0))            
+                plt.imsave(f"inferences/tests{i}.png", img.numpy().transpose(1, 2, 0))            
         
         exit()
 
@@ -391,11 +392,14 @@ if __name__ == "__main__":
                             save_top_k=1),
         ])
     
+
+    for param in model.model.backbone.parameters():
+      print(param.requires_grad)
     
     if not config.test_model:
         trainer.fit(model, datamodule=dm)
     
-    print(model.model.roi_heads.box_predictor)
+    print(model.model.head.classification_head)
     
     # figure out how many are kept from rpn 
     

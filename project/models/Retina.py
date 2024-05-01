@@ -41,26 +41,44 @@ def set_model_transform(model, litmodel):
     model.transform = transform
   
 def init_retina(config, litmodel):
-    litmodel.model = retinanet_resnet50_fpn(weights=RetinaNet_ResNet50_FPN_Weights)
 
+
+    # custom_ag = AnchorGenerator(
+    #     sizes=((32, 64, 128, 256, 512),),
+    #     aspect_ratios=((0.5, 1.0, 2.0),),
+    # )
+    litmodel.model = retinanet_resnet50_fpn(weights=RetinaNet_ResNet50_FPN_Weights.DEFAULT)
+    # fastmodel = fasterrcnn_resnet50_fpn(weights=None)
+        
+    # # Loading weights finetuned on COCO greyscale https://huggingface.co/Theem/fasterrcnn_resnet50_fpn_grayscale
+    # # Load pretrained weights
+    # state_dict = torch.load(litmodel.config.pretrained_weights_path)['model']
+    # # Adapt input convolution
+    # fastmodel.backbone.body.conv1 = torch.nn.Conv2d(1, 64,
+    #                             kernel_size=(7, 7), stride=(2, 2),
+    #                             padding=(3, 3), bias=False).requires_grad_(True)
+    
+    # fastmodel.load_state_dict(state_dict)
+
+    # Adapt input convolution
+    litmodel.model.backbone.body.conv1 = torch.nn.Conv2d(1, 64,
+                                kernel_size=(7, 7), stride=(2, 2),
+                                padding=(3, 3), bias=False).requires_grad_(True)
+
+    # Adapt detection head to use 8 (+ 1) classes
     num_anchors = litmodel.model.head.classification_head.num_anchors
 
+
     litmodel.model.head.classification_head = RetinaNetClassificationHead(
-        in_channels = 256,
+        in_channels = litmodel.model.backbone.out_channels,
+        num_classes = 8, 
         num_anchors = num_anchors,
-        num_classes = 9, 
         norm_layer = partial(torch.nn.GroupNorm, 32)
     )
 
 
 
 
-
-    
-    # Adapt input convolution
-    litmodel.model.backbone.body.conv1 = torch.nn.Conv2d(1, 64,
-                                kernel_size=(7, 7), stride=(2, 2),
-                                padding=(3, 3), bias=False).requires_grad_(True)
     
     # Changing the transforms to grayscale
     set_model_transform(litmodel.model, litmodel)
