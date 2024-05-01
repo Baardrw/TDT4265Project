@@ -289,6 +289,13 @@ def prog_res():
                 resize_dims=[size, size]
             )
         
+        if size == 256:
+            config.max_epochs = 10
+            config.max_lr = 0.0005
+            
+        elif size == 512:
+            config.max_epochs = 10
+            config.max_lr = 0.00005
 
         if i > 0:
             checkpoint_folder = f"/work/baardrw/checkpoints/{config.wandb_project}/{config.wandb_experiment_name}/"
@@ -300,6 +307,8 @@ def prog_res():
         
         
         config.wandb_experiment_name = f"{config.wandb_experiment_name.split('@')[0]}@{size}"
+        
+        
         
         trainer = pl.Trainer(
         devices=config.devices, 

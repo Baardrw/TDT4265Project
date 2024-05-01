@@ -82,10 +82,9 @@ class NapLabDataModule(pl.LightningDataModule):
 
             return v2.Compose([
                 *shared_transforms,
-                v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(),v2.RandomPhotometricDistort(), v2.RandomVerticalFlip(p=0.2), v2.RandomHorizontalFlip(p=1.0)], p=0.5),
+                v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(), v2.ColorJitter(brightness=0.5)], p=0.3),
                 v2.SanitizeBoundingBoxes(),
                 v2.Normalize(mean=mean, std=std),
-                
                 
             ])
 
