@@ -4,14 +4,16 @@ max_lr: 0.005
 weight_decay: 0.0005
 momentum: 0.9
 max_epochs: 100
-batch_size: 2
+batch_size: 6
+
 use_focal_loss: false
+use_custom_anchor_gen: false
 
 staged_training: true
 head_max_lr: 0.005
-head_max_epochs: 20
-all_max_lr: 0.002
-all_max_epochs: 25
+head_max_epochs: 30
+all_max_lr: 0.003
+all_max_epochs: 50
 
 
 use_pretrained_weights: true
@@ -20,10 +22,10 @@ pretrained_weights_path: /work/baardrw/fasterrcnn_resnet50_fpn_coco_grayscale.pt
 image_h: 128
 image_w: 512
 progressive_resizing: false
-progressive_resizing_start_index: 1
+progressive_resizing_start_index: 0
 
 #/work/baardrw/checkpoints/fine_tune/porg_res_wout_focal_loss/prog_res0.ckpt
-# checkpoints/baseline_512x512.ckpt
+# 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
 test_model: false
 checkpoint_path: checkpoints/baseline_512x512.ckpt
@@ -34,7 +36,7 @@ devices: auto
 enable_progress_bar: true
 
 wandb_project: fine_tune
-wandb_experiment_name: no_focal_staged_training
+wandb_experiment_name: staged_bs4
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
