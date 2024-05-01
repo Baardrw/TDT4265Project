@@ -32,16 +32,7 @@ config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 VALID_LABELS = ['background', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'car']
 
 if not config.pre_train:
-    VALID_LABELS = [
-            "background",
-            "truck",
-            "bus",
-            "bicycle",
-            "scooter",
-            "person",
-            "rider",
-            "car"
-        ]
+    VALID_LABELS = ["background", "truck", "bus", "scooter", "bicycle", "person", "rider", "car"]
     
 STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 

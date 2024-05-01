@@ -3,13 +3,13 @@ model: faster_rcnn
 max_lr: 0.005
 weight_decay: 0.0005
 momentum: 0.9
-max_epochs: 100
+max_epochs: 25
 batch_size: 6
 
 use_focal_loss: false
 use_custom_anchor_gen: false
 
-staged_training: true
+staged_training: false
 head_max_lr: 0.005
 head_max_epochs: 30
 all_max_lr: 0.003
@@ -27,16 +27,16 @@ progressive_resizing_start_index: 0
 #/work/baardrw/checkpoints/fine_tune/porg_res_wout_focal_loss/prog_res0.ckpt
 # 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
-test_model: false
-checkpoint_path: checkpoints/baseline_512x512.ckpt
+test_model: true
+checkpoint_path: /work/baardrw/checkpoints/fine_tune/no_focal_staged_training/best_model:epoch=23-val_map_50=0.1834.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
 devices: auto
 enable_progress_bar: true
 
-wandb_project: fine_tune
-wandb_experiment_name: staged_bs4
+wandb_project: garb
+wandb_experiment_name: prog_res_bs6
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
