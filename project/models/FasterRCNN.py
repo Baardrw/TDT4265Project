@@ -129,7 +129,6 @@ def init_faster_rcnn(config, litmodel):
         in_features = litmodel.model.roi_heads.box_predictor.cls_score.in_features
         litmodel.model.roi_heads.box_predictor = FastRCNNPredictor(in_channels=in_features, num_classes=litmodel.num_classes)
         
-       
         
         # TODO: figure out appropriate anchor generator
         

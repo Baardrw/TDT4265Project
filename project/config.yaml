@@ -3,30 +3,32 @@ model: retina
 max_lr: 0.01
 weight_decay: 0.001
 momentum: 0.9
-max_epochs: 100
-batch_size: 16
+max_epochs: 25
+batch_size: 12
+
 use_focal_loss: false
+use_custom_anchor_gen: false
 
 staged_training: false
 head_max_lr: 0.005
-head_max_epochs: 20
-all_max_lr: 0.01
-all_max_epochs: 25
+head_max_epochs: 30
+all_max_lr: 0.003
+all_max_epochs: 100
 
 
 use_pretrained_weights: false
 pretrained_weights_path: /work/ianma/fasterrcnn_resnet50_fpn_coco_grayscale.pth
 
-image_h: 512
-image_w: 2048
-progressive_resizing: false
-progressive_resizing_start_index: 1
+image_h: 128
+image_w: 512
+progressive_resizing: true
+progressive_resizing_start_index: 0
 
 #/work/baardrw/checkpoints/fine_tune/porg_res_wout_focal_loss/prog_res0.ckpt
-# checkpoints/baseline_512x512.ckpt
+# 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
 test_model: false
-checkpoint_path: #checkpoints/baseline_512x512.ckpt
+checkpoint_path: /work/baardrw/best_model:epoch=77-val_map_50=0.5074.ckpt
 early_stopping_patience: 10
 num_workers: 20
 check_val_every_n_epoch: 3

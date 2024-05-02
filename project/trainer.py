@@ -33,16 +33,7 @@ config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 VALID_LABELS = ['background', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'car']
 
 if not config.pre_train:
-    VALID_LABELS = [
-            "background",
-            "truck",
-            "bus",
-            "bicycle",
-            "scooter",
-            "person",
-            "rider",
-            "car"
-        ]
+    VALID_LABELS = ["background", "truck", "bus", "scooter", "bicycle", "person", "rider", "car"]
     
 STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
@@ -201,6 +192,19 @@ def staged_traing():
         )
     
     model = LitModel.load_from_checkpoint(checkpoint_path=config.checkpoint_path, config=config)
+    
+    if config.use_custom_anchor_gen:
+        print("Using custom anchor generator")
+        anchor_generator = AnchorGenerator(
+            sizes=((32,), (64,), (128,), (256,), (512,)),
+            aspect_ratios=tuple([(0.2, 0.35, 0.5, 1.0, 2.0) for _ in range(5)]))
+        
+        model.model.rpn.anchor_generator = anchor_generator
+        
+        out_channels = model.model.backbone.out_channels
+        model.model.rpn.head = RPNHead(out_channels, anchor_generator.num_anchors_per_location()[0])
+    
+    
     model.stage = 0
    
     ## Freeze backbone:
@@ -288,6 +292,13 @@ def prog_res():
                 resize_dims=[size, size]
             )
         
+        if size == 256:
+            config.max_epochs = 10
+            config.max_lr = 0.0005
+            
+        elif size == 512:
+            config.max_epochs = 10
+            config.max_lr = 0.00005
 
         if i > 0:
             checkpoint_folder = f"/work/baardrw/checkpoints/{config.wandb_project}/{config.wandb_experiment_name}/"
@@ -300,12 +311,14 @@ def prog_res():
         
         config.wandb_experiment_name = f"{config.wandb_experiment_name.split('@')[0]}@{size}"
         
+        
+        
         trainer = pl.Trainer(
         devices=config.devices, 
         max_epochs=config.max_epochs, 
         check_val_every_n_epoch=config.check_val_every_n_epoch,
         enable_progress_bar=config.enable_progress_bar,
-        precision="bf16-NapLabDataModulemixed",
+        precision="bf16-mixed",
         # deterministic=True,
         logger=WandbLogger(project=config.wandb_project, name=config.wandb_experiment_name, config=config),
         callbacks=[
