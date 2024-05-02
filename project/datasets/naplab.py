@@ -125,18 +125,15 @@ class NapLab(VisionDataset):
         for line in open(path):
             line = line.strip().split()
             cls = int(line[0])
-            if cls == 0:
-                cls = 7
-                
-            if cls == 5:
-                cls = 3 # Scooter -> Motorcycle
             
             if cls >= 6: # If its a person or rider
                 cls -= 1 # Shift the classes to the left
             
-            
-            
-            
+            if cls == 0: # Shift car from background to take place of rider
+                cls = 7 
+                
+            if cls == 5:
+                cls = 3 # Scooter -> Motorcycle
         
             x, y, w, h = map(float, line[1:])
             
