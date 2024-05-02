@@ -9,12 +9,8 @@ import torch
 import torchmetrics
 
 from torch import nn, mul, add
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator, RPNHead
-from torchvision.models.detection import roi_heads
+from torchvision.models.detection.faster_rcnn import AnchorGenerator, RPNHead
 
-
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.transforms import v2
 from torchvision import utils, ops
 
@@ -73,6 +69,7 @@ class LitModel(pl.LightningModule):
         optimizer = torch.optim.SGD(self.parameters(), lr=max_lr, momentum=momentum, weight_decay=weight_decay)
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max_epochs)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"} ]
+    
 
     def forward(self, image):
         """Inference step."""
@@ -194,17 +191,20 @@ class LitModel(pl.LightningModule):
 
             # image_tensor = v2.functional.equalize(image_tensor)
             # image_tensor = v2.functional.to_dtype(image_tensor, torch.float32)
-            # image_tensor = v2.functional.normalize(image_tensor, self.mean, self.std)
             # image = np.array(image)
             # image = np.expand_dims(image, axis=0)
-            image_tensor = torch.tensor(image)
+            image_tensor = torch.tensor([image])
+            image_tensor = v2.functional.to_dtype(image_tensor, torch.float32)
+            image_tensor = v2.functional.normalize(image_tensor, self.mean, self.std)
+        
             image_tensor.unsqueeze(0)
             return image_tensor
 
         image = naplab_preprocess(image)
+        image = image.to(self.device)
         print(image.shape)
         self.model.eval()
-        outputs = self.model(image)
+        outputs = self.model([image])
         return outputs
 
         
@@ -260,7 +260,10 @@ def staged_traing():
                             filename='best_model:epoch={epoch:02d}-val_map_50={val/map_50:.4f}',
                             auto_insert_metric_name=False,
                             save_weights_only=True,
-                            save_top_k=1),
+                            save_top_k=1,
+                            monitor="val/map",
+                            mode="max"              # SAVE only the best model 
+                            ),
         ])
         
         
@@ -293,7 +296,11 @@ def staged_traing():
                             filename='best_model:epoch={epoch:02d}-val_map_50={val/map_50:.4f}',
                             auto_insert_metric_name=False,
                             save_weights_only=True,
-                            save_top_k=1),
+                            save_top_k=1,
+                            monitor="val/map",
+                            mode="max"              # SAVE only the best model 
+                            ),
+                            
         ])
     
         
