@@ -53,6 +53,7 @@ class LitModel(pl.LightningModule):
         self.std = [0.2970477123406435]     
         
         if config.model == 'faster_rcnn':
+            print("Using Faster RCNN")
             init_faster_rcnn(config, self)
         else:
             init_retina(config, self)
