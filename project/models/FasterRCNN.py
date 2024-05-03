@@ -63,7 +63,7 @@ def faster_rcnn_focal_loss(class_logits, box_regression, labels, regression_targ
         box_loss (Tensor)
     """
     
-    assert False, "This function is not used, use the loss implementation in the model instead"
+    # assert False, "This function is not used, use the loss implementation in the model instead"
     labels = torch.cat(labels, dim=0)
     regression_targets = torch.cat(regression_targets, dim=0)
 

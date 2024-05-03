@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import torchmetrics.detection
 import torchmetrics.detection.mean_ap
 import lightning.pytorch as pl
@@ -8,14 +9,10 @@ import torch
 import torchmetrics
 
 from torch import nn, mul, add
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, AnchorGenerator, RPNHead
-from torchvision.models.detection import roi_heads
+from torchvision.models.detection.faster_rcnn import AnchorGenerator, RPNHead
 
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.transforms import v2
 from torchvision import utils, ops
-import torch.nn.functional as F
 
 import munch
 import yaml
@@ -41,8 +38,12 @@ STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 class LitModel(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
+        self.stage = 0
         self.config = config
-        self.num_classes = len(VALID_LABELS)        
+        self.num_classes = len(VALID_LABELS)   
+        
+        self.mean = [0.5085652989351241] # taken from data analysis of naplab dataset
+        self.std = [0.2970477123406435]     
         
         if config.model == 'faster_rcnn':
             init_faster_rcnn(config, self)
@@ -73,6 +74,7 @@ class LitModel(pl.LightningModule):
         optimizer = torch.optim.SGD(self.parameters(), lr=max_lr, momentum=momentum, weight_decay=weight_decay)
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max_epochs)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"} ]
+    
 
     def forward(self, image):
         """Inference step."""
@@ -180,6 +182,37 @@ class LitModel(pl.LightningModule):
                 plt.imsave(f"inferences/tests{i}.png", img.numpy().transpose(1, 2, 0))            
         
         exit()
+        
+    def perform_inference(self, image):
+        """
+        Args:
+            -image: image ad contigous numpy array
+        """
+        
+        def naplab_preprocess(image):
+            
+            # image_tensor = torch.tensor(image)
+
+            # image_tensor = v2.functional.equalize(image_tensor)
+            # image_tensor = v2.functional.to_dtype(image_tensor, torch.float32)
+            # image = np.array(image)
+            # image = np.expand_dims(image, axis=0)
+            image_tensor = torch.tensor([image])
+            image_tensor = v2.functional.to_dtype(image_tensor, torch.float32)
+            image_tensor = v2.functional.normalize(image_tensor, self.mean, self.std)
+        
+            image_tensor.unsqueeze(0)
+            return image_tensor
+
+        image = naplab_preprocess(image)
+        image = image.to(self.device)
+        print(image.shape)
+        self.model.eval()
+        outputs = self.model([image])
+        return outputs
+
+        
+        # Normalize to 
 
 def staged_traing():
     """Only fine tune the model head, then fine tune the entire model"""
@@ -231,7 +264,10 @@ def staged_traing():
                             filename='best_model:epoch={epoch:02d}-val_map_50={val/map_50:.4f}',
                             auto_insert_metric_name=False,
                             save_weights_only=True,
-                            save_top_k=1),
+                            save_top_k=1,
+                            monitor="val/map",
+                            mode="max"              # SAVE only the best model 
+                            ),
         ])
         
         
@@ -264,7 +300,11 @@ def staged_traing():
                             filename='best_model:epoch={epoch:02d}-val_map_50={val/map_50:.4f}',
                             auto_insert_metric_name=False,
                             save_weights_only=True,
-                            save_top_k=1),
+                            save_top_k=1,
+                            monitor="val/map",
+                            mode="max"              # SAVE only the best model 
+                            ),
+                            
         ])
     
         
@@ -276,7 +316,7 @@ def prog_res():
     """Only for fine tuning on the naplab dataset the aim is to  s.t. it doesnt overfit instantly"""
     sizes = [16, 32, 64, 128, 256, 512]
     
-    
+    name = config.wandb_experiment_name
     
     for i, size in enumerate(sizes):
         
@@ -328,7 +368,11 @@ def prog_res():
                             filename=f'prog_res{i}',
                             auto_insert_metric_name=False,
                             save_weights_only=True,
-                            save_top_k=1),
+                            save_top_k=1,
+                            monitor="val/map",
+                            mode="max"              # SAVE only the best model 
+                            ),
+                            
         ])
         
         
