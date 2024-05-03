@@ -239,7 +239,7 @@ def sahi_inference(images, model, image_index=0):
         result.object_prediction_list = nms(result.object_prediction_list, 0.4)
         
 
-        result.export_visuals('demo/', file_name=f'{image_index}.png', rect_th=1, text_size=0.3)
+        result.export_visuals('demo/', file_name=f'{str(image_index).zfill(3)}.png', rect_th=1, text_size=0.3)
         
         model.reset_sahi_detections()
         print(image_index)
