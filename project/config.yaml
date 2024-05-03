@@ -1,7 +1,7 @@
 model: faster_rcnn
 
-max_lr: 0.005
-weight_decay: 0.0005
+max_lr: 0.003
+weight_decay: 0.001
 momentum: 0.9
 max_epochs: 150
 batch_size: 8
@@ -9,7 +9,7 @@ batch_size: 8
 use_focal_loss: false
 use_custom_anchor_gen: false
 
-staged_training: true
+staged_training: false
 head_max_lr: 0.005
 head_max_epochs: 30
 all_max_lr: 0.003
