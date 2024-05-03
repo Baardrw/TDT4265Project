@@ -53,7 +53,7 @@ class LitModel(pl.LightningModule):
         self.val_map = torchmetrics.detection.mean_ap.MeanAveragePrecision(
             box_format="xyxy",
             iou_type="bbox", 
-            max_detection_thresholds=[1, 6, 12],
+            # max_detection_thresholds=[1, 6, 12],
         )
     
     
@@ -232,22 +232,17 @@ def staged_traing():
             sizes=((32,), (64,), (128,), (256,), (512,)),
             aspect_ratios=tuple([(0.2, 0.35, 0.5, 1.0, 2.0) for _ in range(5)]))
         
-        model.model.rpn.anchor_generator = anchor_generator
+        # Change anchor generator in RetinaNet if needed
         
-        out_channels = model.model.backbone.out_channels
-        model.model.rpn.head = RPNHead(out_channels, anchor_generator.num_anchors_per_location()[0])
-    
     
     model.stage = 0
    
-    ## Freeze backbone:
+    ##  backbone:
     for param in model.model.backbone.parameters():
         param.requires_grad = False
-        
-    # Freeze rpn
-    for param in model.model.rpn.parameters():
-        param.requires_grad = False
-    
+    # Freeze head
+    for param in model.model.head.classification_head.parameters():
+        param.requires_grad = True
     
     trainer = pl.Trainer(
         devices=config.devices, 
@@ -279,11 +274,10 @@ def staged_traing():
     for i, param in enumerate(model.model.backbone.parameters()):
         if i > 22:
             param.requires_grad = True
-        
-    # UnFreeze rpn
-    for param in model.model.rpn.parameters():
+
+    for param in model.model.head.classification_head.parameters():
         param.requires_grad = True
-        
+    
    
     trainer = pl.Trainer(
         devices=config.devices, 

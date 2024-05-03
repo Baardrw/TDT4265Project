@@ -1,19 +1,19 @@
 model: retina
 
-max_lr: 0.003
+max_lr: 0.01
 weight_decay: 0.001
 momentum: 0.9
 max_epochs: 25
 batch_size: 8
 
-use_focal_loss: true
+use_focal_loss: false
 use_custom_anchor_gen: false
 
 staged_training: true
-head_max_lr: 0.001
+head_max_lr: 0.01
 head_max_epochs: 30
-all_max_lr: 0.001
-all_max_epochs: 100
+all_max_lr: 0.005
+all_max_epochs: 20
 
 
 use_pretrained_weights: false
@@ -28,7 +28,7 @@ progressive_resizing_start_index: 0
 # 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
 test_model: false
-checkpoint_path: /work/baardrw/best_model:epoch=77-val_map_50=0.2897.ckpt
+checkpoint_path: /work/ianma/checkpoints/Retina/fixing_naplab_bug/best_model:epoch=02-val_map_50=0.2194.ckpt
 early_stopping_patience: 10
 num_workers: 20
 check_val_every_n_epoch: 3
@@ -36,12 +36,13 @@ devices: auto
 enable_progress_bar: true
 
 wandb_project: Retina
-wandb_experiment_name: limit_max_detections
+wandb_experiment_name: non_staged_2_new_checkpoint
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
 train_split_ratio: 0.8
-pre_train: true
-data_root:  /work/ianma/cityscapes
+pre_train: false
+data_root: /work/datasets/tdt4265/ad/NAPLab-LiDAR  
+# /work/ianma/nap
 mode: fine
 checkpoint_folder: /work/ianma/checkpoints/
