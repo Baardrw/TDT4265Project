@@ -9,7 +9,7 @@ batch_size: 12
 use_focal_loss: false
 use_custom_anchor_gen: false
 
-staged_training: false
+staged_training: true
 head_max_lr: 0.005
 head_max_epochs: 30
 all_max_lr: 0.003
@@ -27,8 +27,8 @@ progressive_resizing_start_index: 0
 #/work/baardrw/checkpoints/fine_tune/porg_res_wout_focal_loss/prog_res0.ckpt
 # 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
-test_model: true
-checkpoint_path: /work/baardrw/checkpoints/fine_tune/prog_resbs12_lowering_lr@512/prog_res5.ckpt
+test_model: false
+checkpoint_path: /work/baardrw/best_model:epoch=77-val_map_50=0.2897.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
