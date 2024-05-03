@@ -1,4 +1,5 @@
 import math
+from typing import List
 import numpy as np
 import torchmetrics.detection
 import torchmetrics.detection.mean_ap
@@ -23,6 +24,10 @@ from datasets.cs_datamodule import CityscapesDataModule
 from models.FasterRCNN import init_faster_rcnn
 
 
+# SAHI stuff
+from sahi.prediction import ObjectPrediction
+
+
 torch.set_float32_matmul_precision('medium')
 config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 
@@ -40,6 +45,8 @@ class LitModel(pl.LightningModule):
         self.stage = 0
         self.config = config
         self.num_classes = len(VALID_LABELS)   
+        
+        self.object_prediction_list: List[ObjectPrediction]= []
         
         self.mean = [0.5085652989351241] # taken from data analysis of naplab dataset
         self.std = [0.2970477123406435]     
@@ -118,99 +125,94 @@ class LitModel(pl.LightningModule):
                 "val/loss": losses
             }
         ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))        
+        
     
     def test_step(self, batch, batch_idx):
-        images = [i.unsqueeze(0) for i in  batch[0] ]
-            
-        self.model.eval()
-        outputs = self.model(images) 
+        pass
+    
+        # Model is tested using sahi in sahi_demo.py
         
-        # self.val_map.update(outputs, targets)
-        # map = self.val_map.compute()
         
-        # self.log_dict(
-        #     {
-        #         "test/map_50": map['map_50'],
-        #         "test/map_75": map['map_75'],
-                
-        #         "test/map": map['map'],
-        #         "test/map_small": map['map_small'],
-        #         "test/map_medium": map['map_medium'],
-        #         "test/map_large": map['map_large'],
-        #     }
-        # ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))
-        
-        self.draw_boxes(images, outputs)
-        
-
-    def draw_boxes(self, images, outputs):
-        mean = [0.3090844516698354]
-        std = [0.17752945677448584]
-        
-        mean = [0.5085652989351241] # taken from data analysis of naplab dataset
-        std = [0.2970477123406435]
-        
-        for i in range(len(images)):
-            output = outputs[i]
-            
-            print(output['labels'])
-            
-            keep = ops.nms(output['boxes'], output['scores'], iou_threshold=0.2)
-            output['boxes'] = torch.index_select(output['boxes'], 0, keep)
-            output['labels'] = torch.index_select(output['labels'], 0, keep)
-            
-            
-            image_tensor = v2.functional.to_dtype(images[i], torch.float32)
-            de_normed = add(mul(image_tensor, self.coco_std_grayscale[0]), self.coco_mean_grayscale[0])
-            de_normed = add(mul(image_tensor, std[0]), mean[0])
-            
-            image_uint8 = (de_normed * 255).type(torch.uint8)
-            # print(output['boxes'])
-            
-            labels = [VALID_LABELS[label_id] for label_id in output['labels']]
-            img = utils.draw_bounding_boxes(image_uint8, output['boxes'], labels=labels, width=3) # TODO: labels
-
-            img = img.cpu()
-            import matplotlib.pyplot as plt
-            
-            if img.numpy().transpose(1, 2, 0).shape[2] == 1:
-                plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0)[:, :, 0], cmap='gray')
-            else:
-                plt.imsave(f"inferences/test{i}.png", img.numpy().transpose(1, 2, 0))            
-        
-        exit()
-        
-    def perform_inference(self, image):
+    def perform_inference(self, image: np.ndarray):
         """
         Args:
             -image: image ad contigous numpy array
         """
         
         def naplab_preprocess(image):
+            formatted_ndarray = np.moveaxis(image, -1, 0)
+            image_tensor = torch.tensor(formatted_ndarray)
             
-            # image_tensor = torch.tensor(image)
-
-            # image_tensor = v2.functional.equalize(image_tensor)
-            # image_tensor = v2.functional.to_dtype(image_tensor, torch.float32)
-            # image = np.array(image)
-            # image = np.expand_dims(image, axis=0)
-            image_tensor = torch.tensor([image])
-            image_tensor = v2.functional.to_dtype(image_tensor, torch.float32)
-            image_tensor = v2.functional.normalize(image_tensor, self.mean, self.std)
-        
-            image_tensor.unsqueeze(0)
-            return image_tensor
+            
+            transforms = v2.Compose([
+                v2.ToImage(),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Grayscale(num_output_channels=1),
+                v2.RandomEqualize(p=1.0),
+                v2.Resize((512, 512)),
+                v2.Normalize(mean=self.mean, std=self.std),
+            ])
+            
+            
+            return transforms(image_tensor)
 
         image = naplab_preprocess(image)
         image = image.to(self.device)
-        print(image.shape)
         self.model.eval()
         outputs = self.model([image])
-        return outputs
+        
+        # The bounding boxes of the outputs are now only valid for the 512x512 image
+        # We need to convert them to the original image size 128x256
+        # y is scaled by 4 and x is scaled by 2 
+                
+        outputs[0]['boxes'][:, 0] *= 0.5 # minx
+        outputs[0]['boxes'][:, 1] *= 0.25 # miny 
+        outputs[0]['boxes'][:, 2] *= 0.5
+        outputs[0]['boxes'][:, 3] *= 0.25
+    
 
+        self.sahi_outputs = outputs
         
         # Normalize to 
+        
+    def convert_original_predictions(self, shift_amount, full_shape) -> ObjectPrediction:
+        # print(shift_amount)
+        # print(full_shape)
+        # print(self.sahi_outputs)k
+        
+        for prediction in self.sahi_outputs:
+            boxes = prediction['boxes'].cpu().detach()
+            labels = prediction['labels'].cpu().detach()
+            scores = prediction['scores'].cpu().detach()
 
+            boxes[:, 0] += shift_amount[0]
+            boxes[:, 1] += shift_amount[1]
+            boxes[:, 2] += shift_amount[0]
+            boxes[:, 3] += shift_amount[1]
+            
+            
+            if full_shape is not None:
+                boxes[:, 0] = torch.clamp(boxes[:, 0], 0, full_shape[1])
+                boxes[:, 1] = torch.clamp(boxes[:, 1], 0, full_shape[0])
+                boxes[:, 2] = torch.clamp(boxes[:, 2], 0, full_shape[1])
+                boxes[:, 3] = torch.clamp(boxes[:, 3], 0, full_shape[0])
+            
+            for i in range(len(boxes)):
+                if scores[i] > 0.4:
+                    self.object_prediction_list.append(
+                        ObjectPrediction(
+                            category_id=int(labels[i]),
+                            category_name=VALID_LABELS[labels[i]],
+                            score=scores[i],
+                            bbox=[boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]]
+                        )
+                    )
+
+    def reset_sahi_detections(self):
+        self.object_prediction_list = []
+    
+    
+    
 def staged_traing():
     """Only fine tune the model head, then fine tune the entire model"""
     

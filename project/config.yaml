@@ -4,7 +4,7 @@ max_lr: 0.003
 weight_decay: 0.001
 momentum: 0.9
 max_epochs: 25
-batch_size: 8
+batch_size: 16
 
 use_focal_loss: true
 use_custom_anchor_gen: false
@@ -28,7 +28,7 @@ progressive_resizing_start_index: 0
 # 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
 test_model: false
-checkpoint_path: /work/baardrw/best_model:epoch=77-val_map_50=0.2897.ckpt
+checkpoint_path: /work/baardrw/checkpoints/fine_tune/bs8_staged_focal/best_model:epoch=02-val_map_50=0.3684.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3
@@ -36,7 +36,7 @@ devices: auto
 enable_progress_bar: true
 
 wandb_project: fine_tune
-wandb_experiment_name: bs8_staged_focal
+wandb_experiment_name: bs8_staged_focal_harder_transforms
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
