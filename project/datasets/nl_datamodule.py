@@ -105,17 +105,19 @@ class NapLabDataModule(pl.LightningDataModule):
 
 if __name__ == '__main__':
     import torchvision
+    VALID_LABELS = ["background", "truck", "bus", "scooter", "bicycle", "person", "rider", "car"]
 
     # Test the data loader
     loader = NapLabDataModule(
         # data_root='/home/bard/Documents/cityscapes',
         batch_size=30,
         num_workers=0,
+        
     )
     loader.setup()
-    print(len(loader.train_dataset))
+    print(len(loader.val_dataset))
 
-    train_loader: DataLoader = loader.train_dataloader()
+    train_loader: DataLoader = loader.val_dataloader()
     # Get one batch from dataloader
     batch = next(iter(train_loader))
     # print(batch[1][0])
@@ -139,8 +141,11 @@ if __name__ == '__main__':
         std += np.std(image_tensor.numpy().transpose(1, 2, 0).flatten())
         
         image_uint8 = (image_tensor * 255).type(torch.uint8)
+        
+        
+        labels = [VALID_LABELS[label] for label in labels]
 
-        img = utils.draw_bounding_boxes(image_uint8, all_bbs, width=1)
+        img = utils.draw_bounding_boxes(image_uint8, all_bbs, width=2, labels=labels)
         # img = utils.draw_segmentation_masks(batch[0][0], batch[1][0] )
         import matplotlib.pyplot as plt
         print(img.numpy().transpose(1, 2, 0).shape)
