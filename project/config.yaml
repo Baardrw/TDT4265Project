@@ -28,7 +28,7 @@ progressive_resizing_start_index: 0
 # 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
 test_model: false
-checkpoint_path: /work/baardrw/checkpoints/fine_tune/bs8_staged_focal/best_model:epoch=02-val_map_50=0.3684.ckpt
+checkpoint_path: /work/baardrw/best_model:epoch=02-val_map_50=0.3877.ckpt
 early_stopping_patience: 10
 num_workers: 16
 check_val_every_n_epoch: 3

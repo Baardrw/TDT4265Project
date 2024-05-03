@@ -31,10 +31,10 @@ from sahi.prediction import ObjectPrediction
 torch.set_float32_matmul_precision('medium')
 config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 
-VALID_LABELS = ['background', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'car']
+VALID_LABELS = ['background', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'car'] # Labels that are valid for the cityscapes dataset
 
 if not config.pre_train:
-    VALID_LABELS = ["background", "truck", "bus", "scooter", "bicycle", "person", "rider", "car"]
+    VALID_LABELS = ["background", "truck", "bus", "scooter", "bicycle", "person", "rider", "car"] # Labels that are valid for the naplab dataset
     
 STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
@@ -46,7 +46,7 @@ class LitModel(pl.LightningModule):
         self.config = config
         self.num_classes = len(VALID_LABELS)   
         
-        self.object_prediction_list: List[ObjectPrediction]= []
+        self.object_prediction_list: List[ObjectPrediction]= [] # Object predictions list used for sahi
         
         self.mean = [0.5085652989351241] # taken from data analysis of naplab dataset
         self.std = [0.2970477123406435]     
@@ -86,10 +86,9 @@ class LitModel(pl.LightningModule):
         
         return output
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, _):
         
         images, targets = batch
-        
         
         loss_dict = self.model(images, targets)
         losses = sum(loss for loss in loss_dict.values()) 
@@ -100,7 +99,7 @@ class LitModel(pl.LightningModule):
         return losses
     
         
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, _):
         images, targets = batch
         
         self.model.train()
@@ -127,7 +126,7 @@ class LitModel(pl.LightningModule):
         ,on_epoch=True, on_step=False, prog_bar=True, sync_dist=True, batch_size=len(images))        
         
     
-    def test_step(self, batch, batch_idx):
+    def test_step(self, _, __):
         pass
     
         # Model is tested using sahi in sahi_demo.py
@@ -214,7 +213,7 @@ class LitModel(pl.LightningModule):
     
     
 def staged_traing():
-    """Only fine tune the model head, then fine tune the entire model"""
+    """Only fine tune the model head, then fine tune the entire model. Helps to prevent overfitting."""
     
     dm = NapLabDataModule(
             batch_size=config.batch_size,
@@ -451,8 +450,6 @@ if __name__ == "__main__":
     
     if not config.test_model:
         trainer.fit(model, datamodule=dm)
-    
-    print(model.model.roi_heads.box_predictor)
     
     # figure out how many are kept from rpn 
     

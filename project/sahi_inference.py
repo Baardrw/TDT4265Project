@@ -30,6 +30,25 @@ config = munch.munchify(yaml.load(open("config.yaml"), Loader=yaml.FullLoader))
 def nms(object_predictions: List[sahi.prediction.ObjectPrediction], thresh: float) -> List[sahi.prediction.ObjectPrediction]:
     """Performs NMS on the given object predictions. and returns the pruned list of predictions."""
     
+    def collapse_bus_truck_and_car(d1, d2):
+        c1 = d1.category.id
+        c2 = d2.category.id
+        
+        if c1 == 1 or c1 == 2 or c1 == 7:
+            c1 = 1
+        
+        if c2 == 1 or c2 == 2 or c2 == 7:
+            c2 = 1
+        
+        if c1 == c2: # Best bet is to default to car if the classes are the same
+            d1.category.id = 7
+            d2.category.id = 7
+            
+            return True
+
+        return False
+        
+    
     # Sort the predictions by confidence
     object_predictions.sort(key=lambda x: x.score.value, reverse=True)
     
@@ -40,14 +59,18 @@ def nms(object_predictions: List[sahi.prediction.ObjectPrediction], thresh: floa
         best_detection = object_predictions.pop(0)
         
         # Remove all the predictions that have an IoU greater than the threshold and same class
-        object_predictions = [x for x in object_predictions if sahi.postprocess.utils.calculate_bbox_iou(best_detection, x) < thresh or x.category.id != best_detection.category.id]
+        # Also treats buss car and truck as the same class because the model is not able to distinguish between them well
+        object_predictions = [x for x in object_predictions if sahi.postprocess.utils.calculate_bbox_iou(best_detection, x) < thresh or (x.category.id != best_detection.category.id and not collapse_bus_truck_and_car(best_detection, x))]
+        
+        # # We 
+        
         
         detections.append(best_detection)
     
     
     return detections
     
-
+    
 def aspect_ratio_filtering(object_predictions: List[sahi.prediction.ObjectPrediction]) -> List[sahi.prediction.ObjectPrediction]:
     """Performs aspect ratio filtering on the given object predictions. and returns the pruned list of predictions."""
     
@@ -146,6 +169,7 @@ def sahi_test():
     
     val_loader = dm.val_dataloader() # Used to get the ground truths
     image_paths = dm.test_dataloader().dataset.images
+    inference_speed = []
     
     # This is a stupid way of doing it but its the only way to make SAHI work while getting the labels
     for i, batch in enumerate(val_loader):
@@ -153,37 +177,32 @@ def sahi_test():
         image = image_paths[i]
         
         prediction: sahi.prediction.PredictionResult = sahi_inference([image], model, image_index=i)
+        prediction_list: List[sahi.prediction.ObjectPrediction] = prediction.object_prediction_list
         
-        # Transform the prediction to the format wanted by the metric function
+        inference_speed.append(prediction.durations_in_seconds['prediction'])
         
-        # Predictions in coco format must be changed to a dictionary of lists
-        predictions = prediction.to_coco_predictions()
-    
         pred_dict = {
             'boxes': [],
             'labels': [],
             'scores': []
         }
         
-        for pred in predictions:
+        for pred in prediction_list:
             
-            coco_box = pred['bbox']
-            pred['bbox'] = [coco_box[0], coco_box[1], coco_box[0] + coco_box[2], coco_box[1] + coco_box[3]]
-            pred_dict['boxes'].append(pred['bbox'])
-            pred_dict['labels'].append(pred['category_id'])
-            pred_dict['scores'].append(pred['score'])
+            pred_dict['boxes'].append([pred.bbox.minx, pred.bbox.miny, pred.bbox.maxx, pred.bbox.maxy])
+            pred_dict['labels'].append(pred.category.id)
+            pred_dict['scores'].append(pred.score.value)
             
         # boxes should be FloatTensor[N, 4]
         pred_dict['boxes'] = torch.tensor(pred_dict['boxes'])
         pred_dict['labels'] = torch.tensor(pred_dict['labels'])
         pred_dict['scores'] = torch.tensor(pred_dict['scores'])
         
-            
-        
         val_map.update([pred_dict], target)
     
     val_dict = val_map.compute()
     print(val_dict)
+    print(f"Average inference speed: {sum(inference_speed) / len(inference_speed)}")
         
     
     
@@ -198,9 +217,10 @@ def sahi_inference(images, model, image_index=0):
             slice_width=256,
             detection_model= model,
             overlap_height_ratio=0.0,
-            overlap_width_ratio=0.4,
+            overlap_width_ratio=0.5,
             verbose=True,
-            postprocess_match_metric='IOS',
+            postprocess_match_metric='IOU',
+            postprocess_match_threshold=0.6, # 0.1285
             )
         
         # Prune the predictions on confidence
@@ -216,7 +236,7 @@ def sahi_inference(images, model, image_index=0):
         
         
         # Non max suppresion
-        result.object_prediction_list = nms(result.object_prediction_list, 0.3)
+        result.object_prediction_list = nms(result.object_prediction_list, 0.4)
         
 
         result.export_visuals('demo/', file_name=f'{image_index}.png', rect_th=1, text_size=0.3)
@@ -245,5 +265,7 @@ if __name__ == '__main__':
     
     sahi_inference(test_data.images)
     
-    
-    
+  
+# Faster RCNN  
+# {'map': tensor(0.1285), 'map_50': tensor(0.2728), 'map_75': tensor(0.0960), 'map_small': tensor(0.1383), 'map_medium': tensor(0.2864), 'map_large': tensor(0.1496), 'mar_1': tensor(0.0758), 'mar_10': tensor(0.1553), 'mar_100': tensor(0.1826), 'mar_small': tensor(0.2071), 'mar_medium': tensor(0.3719), 'mar_large': tensor(0.1789), 'map_per_class': tensor(-1.), 'mar_100_per_class': tensor(-1.), 'classes': tensor([0, 2, 3, 4, 5, 6, 7], dtype=torch.int32)}
+# Average inference speed: 0.13530259495332173
