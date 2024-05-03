@@ -82,7 +82,8 @@ class NapLabDataModule(pl.LightningDataModule):
 
             return v2.Compose([
                 *shared_transforms,
-                v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(), v2.ColorJitter(brightness=0.5)], p=0.3),
+                v2.RandomApply([v2.RandomRotation(degrees=15), v2.RandomHorizontalFlip(), v2.RandomVerticalFlip(), v2.ColorJitter(brightness=0.5), v2.RandomIoUCrop(), v2.RandomPhotometricDistort()], p=0.3),
+                
                 v2.SanitizeBoundingBoxes(),
                 v2.Normalize(mean=mean, std=std),
                 
@@ -95,10 +96,10 @@ class NapLabDataModule(pl.LightningDataModule):
                 
                 # ...
             ])
-        elif split == "test":
+        elif split == "test": # Test runs on SAHI
             return v2.Compose([
                 *shared_transforms,
-                v2.Normalize(mean=mean, std=std),
+                #v2.Normalize(mean=mean, std=std),
                 
             ])
 
@@ -117,7 +118,7 @@ if __name__ == '__main__':
     loader.setup()
     print(len(loader.val_dataset))
 
-    train_loader: DataLoader = loader.val_dataloader()
+    train_loader: DataLoader = loader.train_dataloader()
     # Get one batch from dataloader
     batch = next(iter(train_loader))
     # print(batch[1][0])

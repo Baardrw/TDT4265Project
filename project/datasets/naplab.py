@@ -20,17 +20,6 @@ import torchvision.tv_tensors
 
 class NapLab(VisionDataset):
     
-    names = [
-        "background",
-        "truck",
-        "bus",
-        "bicycle",
-        "scooter",
-        "person",
-        "rider",
-        "car"
-    ]
-    
     def __init__(
         self,
         root: str,
@@ -48,7 +37,6 @@ class NapLab(VisionDataset):
         self.split = split
         self.images = [os.path.join(self.root, line.strip()) for line in open(os.path.join(self.root, f"train.txt"))]
         self.targets = [image.replace('images', 'labels_yolo_v1.1').replace('PNG', 'txt') for image in self.images]
-        self.label2idx = {cls: idx for idx, cls in enumerate(self.names)}
         self.image_height, self.image_width = image_dimensions
         
         num_train = math.floor(len(self.images) * train_val_split)
