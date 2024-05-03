@@ -95,11 +95,9 @@ class CityscapesDataModule(pl.LightningDataModule):
         shared_transforms = [
             
             v2.ToImage(),
-            
             v2.Grayscale(num_output_channels=1),
             v2.ToDtype(torch.float32, scale=True),
             v2.RandomCrop(size=(self.image_dimensions[0], self.image_dimensions[1])),
-            
             v2.Resize(size=(self.resize_dims[0], self.resize_dims[1]), antialias=True),
             v2.ClampBoundingBoxes(),
             v2.SanitizeBoundingBoxes(),

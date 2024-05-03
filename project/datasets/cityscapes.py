@@ -247,7 +247,9 @@ class Cityscapes(VisionDataset):
             than one item. Otherwise, target is a json object if target_type="polygon", else the image segmentation.
         """
 
+        # Changing code to return a three-channel image with identical channels.
         org_image = Image.open(self.images[index]).convert("RGB")
+        # three_channel_image = Image.merge(RGB, org_image, org_image, org_image)
         image = torchvision.tv_tensors.Image(org_image)
         
         targets: Any = []
@@ -358,7 +360,7 @@ if __name__ == '__main__':
     VALID_LABELS = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person', 'rider', 'background']
     STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 
-    dataset = Cityscapes('/work/baardrw/cityscapesDataset', split='train', mode='fine',
+    dataset = Cityscapes('/work/ianma/cityscapes', split='train', mode='fine',
                          target_type='polygon', valid_labels=VALID_LABELS, label2idx=STR2IDX)
     
     dataset.create_bb_dataset()
