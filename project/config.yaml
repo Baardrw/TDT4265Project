@@ -3,16 +3,16 @@ model: faster_rcnn
 max_lr: 0.003
 weight_decay: 0.001
 momentum: 0.9
-max_epochs: 150
+max_epochs: 25
 batch_size: 8
 
-use_focal_loss: false
+use_focal_loss: true
 use_custom_anchor_gen: false
 
-staged_training: false
-head_max_lr: 0.005
+staged_training: true
+head_max_lr: 0.001
 head_max_epochs: 30
-all_max_lr: 0.003
+all_max_lr: 0.001
 all_max_epochs: 100
 
 
@@ -36,7 +36,7 @@ devices: auto
 enable_progress_bar: true
 
 wandb_project: fine_tune
-wandb_experiment_name: bs12_raw_dog
+wandb_experiment_name: bs8_staged_focal
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 

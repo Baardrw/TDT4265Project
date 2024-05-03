@@ -37,6 +37,7 @@ STR2IDX = {cls: idx for idx, cls in enumerate(VALID_LABELS)}
 class LitModel(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
+        self.stage = 0
         self.config = config
         self.num_classes = len(VALID_LABELS)   
         
@@ -312,7 +313,7 @@ def prog_res():
     """Only for fine tuning on the naplab dataset the aim is to  s.t. it doesnt overfit instantly"""
     sizes = [16, 32, 64, 128, 256, 512]
     
-    
+    name = config.wandb_experiment_name
     
     for i, size in enumerate(sizes):
         
@@ -364,7 +365,11 @@ def prog_res():
                             filename=f'prog_res{i}',
                             auto_insert_metric_name=False,
                             save_weights_only=True,
-                            save_top_k=1),
+                            save_top_k=1,
+                            monitor="val/map",
+                            mode="max"              # SAVE only the best model 
+                            ),
+                            
         ])
         
         
