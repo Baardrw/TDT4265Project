@@ -9,7 +9,7 @@ batch_size: 16
 use_focal_loss: false
 use_custom_anchor_gen: false
 
-staged_training: true
+staged_training: false
 head_max_lr: 0.01
 head_max_epochs: 30
 all_max_lr: 0.005
@@ -27,8 +27,9 @@ progressive_resizing_start_index: 0
 #/work/baardrw/checkpoints/fine_tune/porg_res_wout_focal_loss/prog_res0.ckpt
 # 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
-test_model: false
-checkpoint_path: /work/ianma/checkpoints/Retina/fixing_naplab_bug/best_model:epoch=02-val_map_50=0.2194.ckpt
+test_model: true
+checkpoint_path: /work/ianma/checkpoints/Retina/staged_2_new_checkpoint/best_model:epoch=02-val_map_50=0.2635.ckpt
+# /work/ianma/checkpoints/Retina/staged/best_model:epoch=02-val_map_50=0.2194.ckpt
 early_stopping_patience: 10
 num_workers: 20
 check_val_every_n_epoch: 3
@@ -36,7 +37,7 @@ devices: auto
 enable_progress_bar: true
 
 wandb_project: Retina
-wandb_experiment_name: non_staged_2_new_checkpoint
+wandb_experiment_name: sahi_test
 
 # Root for pretraining dataset /work/baardrw/cityscapesDataset
 
