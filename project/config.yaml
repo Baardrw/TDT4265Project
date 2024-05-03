@@ -28,7 +28,7 @@ progressive_resizing_start_index: 0
 # 
 # /work/baardrw/checkpoints/fine_tune/no_focal_no_prog_resiz_hilr/best_model:epoch=17-val_map_50=0.2323.ckpt
 test_model: true
-checkpoint_path: /work/ianma/checkpoints/Retina/staged_2_new_checkpoint/best_model:epoch=02-val_map_50=0.2635.ckpt
+checkpoint_path: /work/ianma/checkpoints/Retina/staged_2_new_checkpoint/retina_final.ckpt
 # /work/ianma/checkpoints/Retina/staged/best_model:epoch=02-val_map_50=0.2194.ckpt
 early_stopping_patience: 10
 num_workers: 20
